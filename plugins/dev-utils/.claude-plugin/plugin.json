@@ -3,5 +3,17 @@
   "description": "Basic development utilities",
   "author": {
     "name": "Judi"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/ensure-project-dir.sh"
+          }
+        ]
+      }
+    ]
   }
 }
