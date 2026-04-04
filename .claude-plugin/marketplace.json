@@ -1,0 +1,14 @@
+{
+  "name": "judi-plugins",
+  "owner": {
+    "name": "Judi"
+  },
+  "plugins": [
+    {
+      "name": "dev-utils",
+      "description": "Basic development utilities",
+      "version": "0.1.0",
+      "source": "./plugins/dev-utils"
+    }
+  ]
+}

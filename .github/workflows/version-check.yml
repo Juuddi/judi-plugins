@@ -1,0 +1,80 @@
+name: Plugin Version Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check plugin version bumps
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+
+          # Get all changed files in the PR
+          changed_files=$(git diff --name-only "$BASE"...HEAD)
+
+          # Get plugin names from marketplace.json
+          plugin_names=$(python3 -c "
+          import json
+          with open('.claude-plugin/marketplace.json') as f:
+              data = json.load(f)
+          for p in data['plugins']:
+              print(p['name'])
+          ")
+
+          missing_bumps=()
+
+          for plugin in $plugin_names; do
+            # Check if any files in this plugin's directory changed (excluding marketplace.json itself)
+            plugin_changed=$(echo "$changed_files" | grep "^plugins/$plugin/" || true)
+
+            if [[ -z "$plugin_changed" ]]; then
+              continue
+            fi
+
+            echo "Plugin '$plugin' has changes:"
+            echo "$plugin_changed" | sed 's/^/  /'
+
+            # Compare version in marketplace.json between base and HEAD
+            base_version=$(git show "$BASE:.claude-plugin/marketplace.json" 2>/dev/null | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for p in data['plugins']:
+              if p['name'] == '$plugin':
+                  print(p.get('version', ''))
+                  break
+          " 2>/dev/null || echo "")
+
+            head_version=$(python3 -c "
+          import json
+          with open('.claude-plugin/marketplace.json') as f:
+              data = json.load(f)
+          for p in data['plugins']:
+              if p['name'] == '$plugin':
+                  print(p.get('version', ''))
+                  break
+          ")
+
+            if [[ "$base_version" == "$head_version" ]]; then
+              echo "  Version unchanged: $head_version"
+              missing_bumps+=("$plugin")
+            else
+              echo "  Version bumped: $base_version → $head_version"
+            fi
+            echo ""
+          done
+
+          if [[ ${#missing_bumps[@]} -gt 0 ]]; then
+            echo "::error::The following plugins have changes but no version bump: ${missing_bumps[*]}"
+            echo ""
+            echo "Run ./scripts/bump-version.sh to update versions."
+            exit 1
+          fi
+
+          echo "All changed plugins have version bumps."
