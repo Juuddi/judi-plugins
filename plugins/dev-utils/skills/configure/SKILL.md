@@ -17,10 +17,10 @@ When the user invokes this skill, ask which setting to configure. Currently supp
 
 ## To set a value
 
-Run the configure script:
+Run the configure script with CLAUDE_PLUGIN_DATA exported:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/configure.sh" "<key>" "<value>"
+CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}" "${CLAUDE_PLUGIN_ROOT}/scripts/configure.sh" "<key>" "<value>"
 ```
 
 ## To show current config
