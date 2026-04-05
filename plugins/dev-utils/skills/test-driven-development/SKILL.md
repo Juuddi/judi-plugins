@@ -356,6 +356,33 @@ Before marking work complete:
 
 Can't check all boxes? You skipped TDD. Start over.
 
+## Verification Before Completion
+
+**No completion claims without fresh verification evidence.**
+
+Before claiming work is complete, fixed, or passing — before committing, creating PRs, or moving to the next task:
+
+```
+1. IDENTIFY: What command proves this claim?
+2. RUN: Execute the command (fresh, complete)
+3. READ: Full output, check exit code, count failures
+4. VERIFY: Does output confirm the claim?
+   - If NO: State actual status with evidence
+   - If YES: State claim WITH evidence
+5. ONLY THEN: Make the claim
+```
+
+| Claim | Requires | Not Sufficient |
+|-------|----------|----------------|
+| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
+| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
+| Agent completed | VCS diff shows changes | Agent reports "success" |
+| Requirements met | Line-by-line checklist | Tests passing |
+
+This applies to all claims — exact phrases, paraphrases, and implications of success.
+
 ## When Stuck
 
 | Problem                | Solution                                                             |
