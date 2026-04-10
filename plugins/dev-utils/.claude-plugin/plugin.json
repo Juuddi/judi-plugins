@@ -1,5 +1,6 @@
 {
   "name": "dev-utils",
+  "version": "0.3.0",
   "description": "Basic development utilities",
   "author": {
     "name": "Judi"
