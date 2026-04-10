@@ -6,9 +6,9 @@
     "name": "Judi"
   },
   "userConfig": {
-    "vault_projects_path": {
-      "title": "Vault projects path",
-      "description": "Directory where per-project directories are created on session start (e.g. ~/code/vault/projects)",
+    "vault_path": {
+      "title": "Vault path",
+      "description": "Absolute path to vault root (e.g. ~/code/my-vault)",
       "type": "directory",
       "sensitive": false
     }
