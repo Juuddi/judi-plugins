@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_FILE="${CLAUDE_PLUGIN_DATA}/config"
-
-# Read the vault projects path from plugin config.
-# Falls back to DEV_UTILS_PROJECT_ROOT env var if config doesn't exist.
-if [ -f "$CONFIG_FILE" ]; then
-  BASE_DIR="$(grep '^vault_projects_path=' "$CONFIG_FILE" | cut -d'=' -f2-)"
-else
-  BASE_DIR="${DEV_UTILS_PROJECT_ROOT:-}"
-fi
+BASE_DIR="${CLAUDE_PLUGIN_OPTION_VAULT_PROJECTS_PATH:-}"
 
 if [ -z "$BASE_DIR" ]; then
   exit 0

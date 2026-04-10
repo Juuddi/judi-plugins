@@ -4,6 +4,12 @@
   "author": {
     "name": "Judi"
   },
+  "userConfig": {
+    "vault_projects_path": {
+      "description": "Directory where per-project directories are created on session start (e.g. ~/code/vault/projects)",
+      "sensitive": false
+    }
+  },
   "hooks": {
     "SessionStart": [
       {
