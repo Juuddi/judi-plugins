@@ -3,6 +3,7 @@ name: record
 description: "You MUST invoke this (or ask the user) whenever an architecture decision is made, a non-obvious bug is diagnosed, a reusable code pattern emerges, or something surprising is learned about the repo, tooling, or developer workflow."
 argument-hint: "[type] [--no-confirm] e.g. 'decision', 'research --no-confirm'"
 disable-model-invocation: false
+allowed-tools: Read Write Bash(qmd *) Bash(mkdir *)
 ---
 
 # Record Skill
@@ -237,40 +238,9 @@ The slug should be 2-4 hyphenated words derived from the concept.
    follow the STRUCTURE.md decision flowchart (see Type Decision above).
    Then read the template: `${user_config.vault_path}/templates/<type>.md`.
 
-7. **Discover vault context for linking.** If `qmd` is not installed, skip
-   this step. Otherwise:
-
-   **7a. Extract search entities** — From the content to be recorded,
-   identify named entities that plausibly exist as vault notes.
-   Entity types by priority:
-
-   | Priority    | Entity type                         | Always query?    |
-   | ----------- | ----------------------------------- | ---------------- |
-   | 1 (highest) | Repositories                        | Yes — never drop |
-   | 2           | Glossary terms / internal jargon    | Yes              |
-   | 2           | Named tools / frameworks            | Yes              |
-   | 3           | Named concepts / decisions          | If distinctive   |
-   | 4 (lowest)  | Generic agenda items / action items | Drop first       |
-
-   Soft ceiling: ~8 BM25 queries. If approaching, drop priority 4 and 3
-   first. **Never drop a repo query.**
-
-   **7b. Run searches** — BM25 per entity (de-hyphenated) + one semantic
-   pass for the overall topic:
-
-   ```bash
-   qmd search "<de-hyphenated entity>" --json -n 5 -c judi-vault
-   qmd vsearch "<conceptual description>" --json -n 5 -c judi-vault
-   ```
-
-   **7c. Build linking context** — Deduplicate by path, discard:
-   - BM25 score < 0.50
-   - Semantic results >15% below top score
-   - Structural files (CLAUDE.md, TAGS.md, FRONTMATTER.md, index.md)
-   - Template files
-
-   Record for each result: title, vault path, pre-formatted wikilink,
-   tags, relevance note.
+7. **Discover vault context for linking.** Follow the full process in
+   [reference/wikilink-discovery.md](reference/wikilink-discovery.md).
+   If `qmd` is not installed, skip this step entirely.
 
 8. **Confirm with user** (unless `--no-confirm` flag was set). Present:
 
