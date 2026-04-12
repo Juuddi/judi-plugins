@@ -13,6 +13,12 @@
       "sensitive": false
     }
   },
+  "mcpServers": {
+    "qmd": {
+      "command": "qmd",
+      "args": ["mcp"]
+    }
+  },
   "hooks": {
     "SessionStart": [
       {
