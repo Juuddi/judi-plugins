@@ -8,7 +8,7 @@ Build using the [claude code plugins documentation](https://code.claude.com/docs
 
 ## Marketplace Structure
 
-```
+```txt
 .claude-plugin/
   marketplace.json              # Marketplace catalog (lists all plugins)
 plugins/

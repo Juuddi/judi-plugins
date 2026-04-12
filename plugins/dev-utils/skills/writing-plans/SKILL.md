@@ -124,15 +124,14 @@ Every step must contain the actual content an engineer needs. These are **plan f
 
 ## Self-Review
 
-After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
+After writing the complete plan, dispatch the plan document reviewer agent using `subagent_type: "plan-document-reviewer"`. Provide both the plan file path and the spec file path in the prompt. The reviewer checks for:
 
-**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
+1. **Spec coverage:** Requirements from the spec that have no corresponding task
+2. **Placeholder scan:** TODOs, incomplete tasks, vague steps
+3. **Task decomposition:** Tasks with clear boundaries and actionable steps
+4. **Buildability:** Could an engineer follow this without getting stuck?
 
-**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
-
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
-
-If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
+If the reviewer finds issues, fix them inline and re-dispatch until approved. If the reviewer identifies a spec requirement with no task, add the task.
 
 ## Execution Handoff
 

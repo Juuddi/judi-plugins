@@ -17,13 +17,13 @@ Each plugin can provide:
 
 1. Add this marketplace to Claude Code:
 
-   ```
+   ```shell
    /plugin marketplace add https://github.com/juuddi/judi-plugins
    ```
 
 2. Install a plugin:
 
-   ```
+   ```shell
    /plugin install <plugin-name>@judi-plugins
    ```
 

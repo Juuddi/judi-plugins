@@ -8,6 +8,7 @@ If `qmd` is not installed, skip this entire process — the note will be
 created without wikilinks.
 
 ## Contents
+
 - Extract search entities
 - BM25 query formatting
 - Run searches
@@ -41,11 +42,11 @@ If approaching the soft ceiling, drop priority 4 and 3 entities first.
 > **Always convert hyphens and slashes to spaces before running BM25
 > queries:**
 >
-> | What you want to find              | Wrong query             | Correct query           |
-> | ---------------------------------- | ----------------------- | ----------------------- |
-> | Notes about trusted-services-lite  | `trusted-services-lite` | `trusted services lite` |
-> | Notes tagged salesforce/lwc        | `salesforce/lwc`        | `salesforce lwc`        |
-> | Notes about jwt-auth               | `jwt-auth`              | `jwt auth`              |
+> | What you want to find             | Wrong query             | Correct query           |
+> | --------------------------------- | ----------------------- | ----------------------- |
+> | Notes about trusted-services-lite | `trusted-services-lite` | `trusted services lite` |
+> | Notes tagged salesforce/lwc       | `salesforce/lwc`        | `salesforce lwc`        |
+> | Notes about jwt-auth              | `jwt-auth`              | `jwt auth`              |
 >
 > This does NOT apply to semantic search — the embedding model handles
 > hyphens and compound terms naturally.
@@ -76,12 +77,14 @@ notes, the semantic pass may be skipped.
 ## Build linking context
 
 From combined BM25 + semantic results, deduplicate by path and discard:
+
 - Results with BM25 score < 0.50
 - Semantic results >15% below the top semantic score
 - Structural files (CLAUDE.md, TAGS.md, FRONTMATTER.md, any `index.md`)
 - Template files
 
 For each remaining result, record:
+
 - Title, vault path (strip `qmd://vault/` prefix and `.md` extension)
 - Pre-formatted wikilink: `[[<vault-path>|<title>]]`
 - Tags (from the result metadata, or run `qmd get "<filepath>" -l 20`
@@ -99,6 +102,7 @@ created (same axis, overlapping subject matter), flag it:
 > **Potential duplicate detected**: `[[path|Title]]` covers a similar topic.
 
 Present the warning to the user and ask whether to:
+
 1. Proceed with creating a new note
 2. Update the existing note instead
 3. Merge content from both
@@ -108,6 +112,7 @@ Do NOT silently create a duplicate.
 ## Use context during generation
 
 Carry the linking context into note generation. During content writing:
+
 - Insert `[[path|Title]]` wikilinks where the note's content naturally
   references a related note's topic. Link on first mention only.
 - When a glossary term is found (result has `type: term`), wikilink

@@ -279,11 +279,5 @@ The slug should be 2-4 hyphenated words derived from the concept.
     - Update: Write the integrated content back to the existing file.
     - Create parent directories if they don't exist.
 
-12. **Update the qmd index:**
-    ```bash
-        qmd update 2>/dev/null && qmd embed 2>/dev/null
-    ```
-    If `qmd` is not installed, skip silently.
-
-13. **Report to the user:** file path, action taken (created/updated),
+12. **Report to the user:** file path, action taken (created/updated),
     type, title, and any wikilinks added.

@@ -108,14 +108,14 @@ digraph brainstorming {
 - Commit the design document to git
 
 **Spec Self-Review:**
-After writing the spec document, look at it with fresh eyes:
+After writing the spec document, dispatch the spec document reviewer agent using `subagent_type: "spec-document-reviewer"`. Provide the spec file path in the prompt. The reviewer checks for:
 
-1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+1. Placeholders, TODOs, incomplete sections
+2. Internal contradictions and conflicting requirements
+3. Scope (focused enough for a single plan?)
+4. Ambiguity that could cause someone to build the wrong thing
 
-Fix any issues inline. No need to re-review — just fix and move on.
+If the reviewer finds issues, fix them inline and re-dispatch until approved.
 
 **User Review Gate:**
 After the spec review loop passes, ask the user to review the written spec before proceeding:

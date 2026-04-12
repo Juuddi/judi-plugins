@@ -230,10 +230,5 @@ Examples:
     - Create the `sessions/` directory if it doesn't exist.
 11. Write the file. No user confirmation needed — session notes are always
     new files, low-risk.
-12. Update the qmd index so the new note is immediately searchable:
-    ```bash
-        qmd update 2>/dev/null && qmd embed 2>/dev/null
-    ```
-    If `qmd` is not installed, skip silently.
-13. Report to the user: file path, title, which sections were populated,
+12. Report to the user: file path, title, which sections were populated,
     the number of wikilinks added, and which notes were linked.

@@ -75,17 +75,23 @@ These are guidance, not hard rules. Use judgment.
 ### Subagent Execution
 
 1. Mark task as in_progress
-2. Dispatch implementer subagent using `./implementer-prompt.md` template
-   - Provide full task text — never make subagent read plan file
-   - Include scene-setting context (where this fits, dependencies)
+2. Dispatch implementer using `subagent_type: "implementer"`. Provide in the prompt:
+   - Full task text — never make subagent read plan file
+   - Scene-setting context (where this fits, dependencies)
+   - Working directory
 3. Handle implementer status:
    - **DONE:** Proceed to review
    - **DONE_WITH_CONCERNS:** Read concerns. If about correctness/scope, address before review. If observations, note and proceed.
    - **NEEDS_CONTEXT:** Provide missing context and re-dispatch
    - **BLOCKED:** Assess blocker — provide more context, or escalate to user if plan itself is wrong
-4. Dispatch spec compliance reviewer using `./spec-reviewer-prompt.md`
+4. Dispatch spec compliance reviewer using `subagent_type: "spec-reviewer"`. Provide in the prompt:
+   - Full task requirements text
+   - What the implementer claims they built (from their report)
    - If issues found: implementer fixes, reviewer re-reviews, repeat until approved
-5. Dispatch code quality reviewer using `./code-quality-reviewer-prompt.md`
+5. Dispatch code quality reviewer using `subagent_type: "code-quality-reviewer"`. Provide in the prompt:
+   - What was implemented (from implementer's report)
+   - Plan/requirements reference
+   - Base and head SHAs for the diff
    - If issues found: implementer fixes, reviewer re-reviews, repeat until approved
 
 **Never:**
@@ -139,10 +145,10 @@ Ask for clarification rather than guessing.
 
 **Required workflow skills:**
 - **dev-utils:writing-plans** — creates the plan this skill executes
-- **dev-utils:test-driven-development** — used during inline execution and by implementer subagents
+- **dev-utils:test-driven-development** — used during inline execution (injected automatically into implementer agent via skills field)
 - **dev-utils:requesting-code-review** — code review template for reviewer subagents (when available)
 
-**Subagent prompt templates:**
-- `./implementer-prompt.md`
-- `./spec-reviewer-prompt.md`
-- `./code-quality-reviewer-prompt.md`
+**Agents used:**
+- `implementer` — executes task, writes code/tests, self-reviews, reports status
+- `spec-reviewer` — read-only; verifies implementation matches spec
+- `code-quality-reviewer` — read-only; verifies code quality and design
