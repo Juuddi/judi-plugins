@@ -12,7 +12,8 @@ Development utilities and personal vault knowledge management.
 | `executing-plans`        | Execute implementation plans task-by-task                         |
 | `test-driven-development`| TDD workflow for features and bugfixes                            |
 | `search`                 | Query the personal vault via qmd                                  |
-| `session-note`           | Capture session insights as a vault note                          |
+| `session`                | Capture session insights as a vault note                          |
+| `record`                 | Record mid-conversation knowledge (decisions, research, notes...) |
 
 ## Plugin Configuration
 
