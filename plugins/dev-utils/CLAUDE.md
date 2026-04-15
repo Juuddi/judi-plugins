@@ -14,6 +14,7 @@ Development utilities and personal vault knowledge management.
 | `search`                  | Query the personal vault via qmd                                  |
 | `session`                 | Capture session insights as a vault note                          |
 | `record`                  | Record mid-conversation knowledge (decisions, research, notes...) |
+| `creating-issues`         | Research codebase and file GitHub issues from a user-provided list |
 
 ## Agents
 
