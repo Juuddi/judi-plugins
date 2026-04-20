@@ -15,20 +15,20 @@ or the user can force a type via argument.
 ## Vault Location
 
 The vault root is `${user_config.vault_path}`.
-The qmd collection is `judi-vault`.
+The qmd collection is `${user_config.vault_collection}`.
 
 If `${user_config.vault_path}` is empty or the directory does not exist, abort
-and tell the user to configure the plugin via `/plugins` → dev-utils → Configure Options.
+and tell the user to configure the plugin via `/plugins` → knowledge-vault → Configure Options.
 
 ## Invocation
 
-- `/dev-utils:record` — agent decides type, confirms before writing
-- `/dev-utils:record decision` — forces decision type, confirms
-- `/dev-utils:record --no-confirm` — agent decides type, writes without confirming
-- `/dev-utils:record decision --no-confirm` — forces type, writes without confirming
+- `/knowledge-vault:record` — agent decides type, confirms before writing
+- `/knowledge-vault:record decision` — forces decision type, confirms
+- `/knowledge-vault:record --no-confirm` — agent decides type, writes without confirming
+- `/knowledge-vault:record decision --no-confirm` — forces type, writes without confirming
 
 **Never `session`** — if the user passes `session` as a type, direct them
-to `/dev-utils:session` instead.
+to `/knowledge-vault:session` instead.
 
 ## Argument Parsing
 
@@ -42,7 +42,7 @@ The arguments are available as `$ARGUMENTS`.
 4. If it does not match a type → treat it as a content hint describing
    what to record.
 5. If the text is `session` → reject. Tell the user:
-   > "Use `/dev-utils:session` for session notes."
+   > "Use `/knowledge-vault:session` for session notes."
 
 ## Axis Resolution
 
@@ -207,12 +207,12 @@ The slug should be 2-4 hyphenated words derived from the concept.
 
    **BM25 search:**
    ```bash
-   qmd search "<de-hyphenated concept>" --json -n 10 -c judi-vault
+   qmd search "<de-hyphenated concept>" --json -n 10 -c ${user_config.vault_collection}
    ```
 
    **Semantic search:**
    ```bash
-   qmd vsearch "<conceptual description>" --json -n 5 -c judi-vault
+   qmd vsearch "<conceptual description>" --json -n 5 -c ${user_config.vault_collection}
    ```
 
    > **BM25 query formatting — CRITICAL**

@@ -1,22 +1,8 @@
 {
   "name": "dev-utils",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Basic development utilities",
   "author": {
     "name": "Judi"
-  },
-  "userConfig": {
-    "vault_path": {
-      "title": "Vault path",
-      "description": "Absolute path to vault root (e.g. ~/code/my-vault)",
-      "type": "directory",
-      "sensitive": false
-    }
-  },
-  "mcpServers": {
-    "qmd": {
-      "command": "qmd",
-      "args": ["mcp"]
-    }
   }
 }

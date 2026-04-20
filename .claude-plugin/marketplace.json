@@ -7,8 +7,14 @@
     {
       "name": "dev-utils",
       "description": "Basic development utilities",
-      "version": "0.1.1",
+      "version": "0.7.0",
       "source": "./plugins/dev-utils"
+    },
+    {
+      "name": "knowledge-vault",
+      "description": "Personal knowledge vault: capture, search, and organize notes via qmd",
+      "version": "0.1.0",
+      "source": "./plugins/knowledge-vault"
     }
   ]
 }

@@ -14,19 +14,19 @@ context=""
 
 # Match session/capture patterns -> session skill
 if echo "$lower" | grep -qE '\b(session note|capture this session|what did we learn|end of session|wrap up session|session summary)\b'; then
-  context="Reminder: use /dev-utils:session to capture session insights into a vault note."
+  context="Reminder: use /knowledge-vault:session to capture session insights into a vault note."
 
 # Match decision/chose/picked patterns -> record skill
 elif echo "$lower" | grep -qE '\b(we decided|i decided|decision made|decided to|chose to|picked|going with|settled on)\b'; then
-  context="Reminder: use /dev-utils:record decision to capture this decision in the vault."
+  context="Reminder: use /knowledge-vault:record decision to capture this decision in the vault."
 
 # Match learning/discovery patterns -> record skill
 elif echo "$lower" | grep -qE '\b(learned that|turns out|discovered that|til |today i learned|interesting find|good to know|now i know)\b'; then
-  context="Reminder: use /dev-utils:record to capture this learning in the vault."
+  context="Reminder: use /knowledge-vault:record to capture this learning in the vault."
 
 # Match pattern/technique patterns -> record skill
 elif echo "$lower" | grep -qE '\b(useful pattern|reusable pattern|code pattern|neat trick|good technique)\b'; then
-  context="Reminder: use /dev-utils:record to capture this pattern in the vault."
+  context="Reminder: use /knowledge-vault:record to capture this pattern in the vault."
 fi
 
 if [ -z "$context" ]; then

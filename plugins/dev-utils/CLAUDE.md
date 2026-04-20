@@ -1,19 +1,16 @@
 # dev-utils
 
-Development utilities and personal vault knowledge management.
+Development utilities: planning, execution, TDD, and issue creation workflows.
 
 ## Skills
 
-| Skill                     | Purpose                                                           |
-| ------------------------- | ----------------------------------------------------------------- |
-| `using-dev-utils`         | Establishes skill invocation discipline at conversation start     |
-| `brainstorming`           | Collaborative design exploration before implementation            |
-| `writing-plans`           | Create detailed implementation plans from specs                   |
-| `executing-plans`         | Execute implementation plans task-by-task                         |
-| `test-driven-development` | TDD workflow for features and bugfixes                            |
-| `search`                  | Query the personal vault via qmd                                  |
-| `session`                 | Capture session insights as a vault note                          |
-| `record`                  | Record mid-conversation knowledge (decisions, research, notes...) |
+| Skill                     | Purpose                                                            |
+| ------------------------- | ------------------------------------------------------------------ |
+| `using-dev-utils`         | Establishes skill invocation discipline at conversation start      |
+| `brainstorming`           | Collaborative design exploration before implementation             |
+| `writing-plans`           | Create detailed implementation plans from specs                    |
+| `executing-plans`         | Execute implementation plans task-by-task                          |
+| `test-driven-development` | TDD workflow for features and bugfixes                             |
 | `creating-issues`         | Research codebase and file GitHub issues from a user-provided list |
 
 ## Agents
@@ -27,16 +24,7 @@ Development utilities and personal vault knowledge management.
 | `plan-document-reviewer` | Reviews plans for completeness, spec alignment, task decomposition    | Read-only        |
 | `research`               | Gathers project context without modifying anything                    | Read-only + Bash |
 
-## Hooks
+## Related
 
-| Event              | Matcher       | Script                     | Purpose                                                                        |
-| ------------------ | ------------- | -------------------------- | ------------------------------------------------------------------------------ |
-| `UserPromptSubmit` | —             | `prompt-skill-reminder.sh` | Injects skill reminders when prompt mentions decisions, learnings, or sessions |
-| `PostToolUse`      | `Write\|Edit` | `vault-note-indexer.sh`    | Runs `qmd update && qmd embed` when a vault `.md` is written or edited         |
-| `PreToolUse`       | `Bash`        | `qmd-dehyphenate.sh`       | De-hyphenates `qmd search` queries (BM25 tokenizes on hyphens)                 |
-
-## Plugin Configuration
-
-- `vault_path` — Absolute path to the personal vault root
-
-The qmd collection name `judi-vault` is hardcoded.
+Personal vault capture and search (`record`, `session`, `search`) moved to the
+separate `knowledge-vault` plugin.

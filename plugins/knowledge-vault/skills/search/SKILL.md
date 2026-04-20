@@ -15,13 +15,13 @@ Search the personal vault knowledge store using qmd and return relevant results.
 - `${user_config.vault_path}` must be configured (path to vault root)
 
 If `${user_config.vault_path}` is empty or the directory does not exist, abort
-and tell the user to configure the plugin via `/plugins` → dev-utils → Configure Options.
+and tell the user to configure the plugin via `/plugins` → knowledge-vault → Configure Options.
 
 ## Invocation
 
-`/dev-utils:search <query>` — BM25 keyword search (fast, exact terms)
-`/dev-utils:search <query> --semantic` — Vector search (conceptual similarity)
-`/dev-utils:search <query> --hybrid` — Hybrid with LLM reranking (best quality, slowest)
+`/knowledge-vault:search <query>` — BM25 keyword search (fast, exact terms)
+`/knowledge-vault:search <query> --semantic` — Vector search (conceptual similarity)
+`/knowledge-vault:search <query> --hybrid` — Hybrid with LLM reranking (best quality, slowest)
 
 Default is BM25 keyword search. Use `--semantic` when the query is
 conceptual or phrased as a question. Use `--hybrid` when precision matters.
@@ -45,7 +45,7 @@ pwd = /Users/judi/code/trusted-services-lite
 ### 2. Search by repo name
 
 ```bash
-qmd search "<search_term>" --json -n 20 -c judi-vault
+qmd search "<search_term>" --json -n 20 -c ${user_config.vault_collection}
 ```
 
 The vault organizes repo-related notes in `repos/<repo-name>/` directories, and notes include `repos` frontmatter linking to their relevant repository. Searching by repo name surfaces recent sessions, decisions, and context for the project.
@@ -73,7 +73,7 @@ Here's my recent memories for trusted-services-lite:
 
 ### When NOT to use this strategy
 
-- The user passes specific search terms: `/dev-utils:search JWT auth strategy`
+- The user passes specific search terms: `/knowledge-vault:search JWT auth strategy`
 - The user asks to find something specific: "search for notes about rate limiting"
 
 In those cases, use the arguments directly as the query (see Argument Parsing below).
@@ -99,19 +99,19 @@ $ARGUMENTS = "how to handle session tokens"
 **Keyword (default)**:
 
 ```bash
-qmd search "<query>" --json -n 10 -c judi-vault
+qmd search "<query>" --json -n 10 -c ${user_config.vault_collection}
 ```
 
 **Semantic** (`--semantic`):
 
 ```bash
-qmd vsearch "<query>" --json -n 10 -c judi-vault
+qmd vsearch "<query>" --json -n 10 -c ${user_config.vault_collection}
 ```
 
 **Hybrid** (`--hybrid`):
 
 ```bash
-qmd query "<query>" --json -n 10 -c judi-vault
+qmd query "<query>" --json -n 10 -c ${user_config.vault_collection}
 ```
 
 ### 2. Parse and present results

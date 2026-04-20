@@ -58,14 +58,14 @@ Two search strategies, used together:
 **BM25 (per entity)** — One query per named entity:
 
 ```bash
-qmd search "<de-hyphenated entity>" --json -n 5 -c judi-vault
+qmd search "<de-hyphenated entity>" --json -n 5 -c ${user_config.vault_collection}
 ```
 
 **Semantic (one pass for primary topic)** — One `vsearch` query for
 the note's overall topic, phrased as a natural language concept:
 
 ```bash
-qmd vsearch "<conceptual description of the note's topic>" --json -n 5 -c judi-vault
+qmd vsearch "<conceptual description of the note's topic>" --json -n 5 -c ${user_config.vault_collection}
 ```
 
 The semantic query should be a 5–15 word natural language description,

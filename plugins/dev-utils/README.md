@@ -1,6 +1,6 @@
 # dev-utils
 
-A plugin built for agent interactions with the hive-mind knowledge system.
+Skills and agents for planning, executing, and reviewing software changes.
 
 ## Installation
 
@@ -8,12 +8,4 @@ A plugin built for agent interactions with the hive-mind knowledge system.
 /plugin install dev-utils@judi-plugins
 ```
 
-## Skills
-
-## Hooks
-
-## Rules
-
-## Configuration
-
-## Prerequisites
+See [CLAUDE.md](./CLAUDE.md) for the full list of skills and agents.

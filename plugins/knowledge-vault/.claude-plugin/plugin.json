@@ -1,0 +1,28 @@
+{
+  "name": "knowledge-vault",
+  "version": "0.1.0",
+  "description": "Personal knowledge vault: capture, search, and organize notes via qmd",
+  "author": {
+    "name": "Judi"
+  },
+  "userConfig": {
+    "vault_path": {
+      "title": "Vault path",
+      "description": "Absolute path to the vault root (e.g. ~/vault)",
+      "type": "directory",
+      "sensitive": false
+    },
+    "vault_collection": {
+      "title": "qmd collection name",
+      "description": "Name of the qmd collection that indexes this vault (e.g. 'vault')",
+      "type": "string",
+      "sensitive": false
+    }
+  },
+  "mcpServers": {
+    "qmd": {
+      "command": "qmd",
+      "args": ["mcp"]
+    }
+  }
+}

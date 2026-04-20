@@ -14,17 +14,17 @@ note to the personal vault knowledge base.
 ## Vault Location
 
 The vault root is `${user_config.vault_path}`.
-The qmd collection is `judi-vault`.
+The qmd collection is `${user_config.vault_collection}`.
 
 If `${user_config.vault_path}` is empty or the directory does not exist, abort
-and tell the user to configure the plugin via `/plugins` → dev-utils → Configure Options.
+and tell the user to configure the plugin via `/plugins` → knowledge-vault → Configure Options.
 
 ## Invocation Modes
 
-**Full session** — `/dev-utils:session`
+**Full session** — `/knowledge-vault:session`
 Extract all notable insights from the entire session.
 
-**Focused** — `/dev-utils:session <focus>`
+**Focused** — `/knowledge-vault:session <focus>`
 Extract insights related only to the specified focus area.
 The focus text is available as `$ARGUMENTS`.
 
