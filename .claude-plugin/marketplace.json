@@ -13,7 +13,7 @@
     {
       "name": "knowledge-vault",
       "description": "Personal knowledge vault: capture, search, and organize notes via qmd",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "./plugins/knowledge-vault"
     }
   ]

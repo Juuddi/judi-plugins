@@ -11,6 +11,7 @@ notes through `qmd` and an Obsidian-friendly directory structure.
 | `search`      | Query the vault via qmd (BM25, semantic, or hybrid)               |
 | `session`     | Capture session insights as a vault note                          |
 | `record`      | Record mid-conversation knowledge (decisions, research, notes...) |
+| `research`    | Research a topic via web search and land findings as a vault note |
 
 ## Hooks
 
