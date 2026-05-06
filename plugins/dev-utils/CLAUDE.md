@@ -12,6 +12,7 @@ Development utilities: planning, execution, TDD, and issue creation workflows.
 | `executing-plans`         | Execute implementation plans task-by-task                          |
 | `test-driven-development` | TDD workflow for features and bugfixes                             |
 | `creating-issues`         | Research codebase and file GitHub issues from a user-provided list |
+| `merge-main`              | Pull a branch/PR, merge main into it, resolve conflicts, push      |
 
 ## Agents
 
