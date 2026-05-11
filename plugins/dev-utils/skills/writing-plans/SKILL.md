@@ -16,6 +16,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
 - (User preferences for plan location override this default)
+- Do NOT commit the plan file. Ensure the plan directory (e.g. `docs/plans/`) is covered by `.gitignore`; if it isn't, append the entry. Check first to avoid duplicates.
 
 ## Scope Check
 
@@ -137,6 +138,6 @@ If the reviewer finds issues, fix them inline and re-dispatch until approved. If
 
 After saving the plan:
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Invoking `dev-utils:executing-plans` to begin implementation."**
+**"Plan complete and saved to `docs/plans/<filename>.md` (uncommitted, gitignored). Invoking `dev-utils:executing-plans` to begin implementation."**
 
 - **REQUIRED SUB-SKILL:** Use dev-utils:executing-plans
