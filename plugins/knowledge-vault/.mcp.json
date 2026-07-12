@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "qmd": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/qmd-mcp",
+      "args": ["mcp"]
+    }
+  }
+}

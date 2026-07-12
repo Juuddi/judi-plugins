@@ -3,7 +3,7 @@ name: research
 description: Research an arbitrary topic through web search and record findings as a structured note in the knowledge vault. Use when the user runs /knowledge-vault:research or asks to research, investigate, or do a deep-dive on a topic (e.g. "best places to live in Denver", "evaluate X framework", "workout routines for muscle growth").
 argument-hint: "<topic>"
 disable-model-invocation: true
-allowed-tools: WebSearch WebFetch Read Write Agent Bash(qmd *) Bash(mkdir *) Bash(ls *) Bash(test *)
+allowed-tools: WebSearch WebFetch Read Write Agent Bash(qmd *) Bash(mkdir *) Bash(ls *) Bash(test *) mcp__plugin_knowledge-vault_qmd
 ---
 
 # Research Skill
@@ -183,21 +183,26 @@ A research note lives under exactly one axis: `repos/`, `areas/`, or
 Check whether a research note on this topic already exists in the vault.
 This determines whether to create a new file or update an existing one.
 
-**BM25 (fast, exact terms):**
+Use the qmd MCP `query` tool (preferred), combining a keyword and a
+semantic sub-query in one call, with an `intent` naming the research
+purpose from the interview:
+
+```
+query(searches=[{type:"lex", query:"<de-hyphenated topic>"}, {type:"vec", query:"<natural-language description of the topic>"}], intent:"<research purpose from the interview>", collections=["${user_config.vault_collection}"], limit=10)
+```
+
+**CLI fallback** (if the MCP server is unavailable):
 
 ```bash
 qmd search "<de-hyphenated topic>" --json -n 10 -c ${user_config.vault_collection}
-```
-
-**Semantic (conceptual):**
-
-```bash
 qmd vsearch "<natural-language description of the topic>" --json -n 5 -c ${user_config.vault_collection}
 ```
 
 > **BM25 query formatting — CRITICAL:** always convert hyphens and
-> slashes to spaces before running BM25 queries. BM25 tokenizes on
-> hyphens. This does NOT apply to semantic search.
+> slashes to spaces before running BM25 (`lex`) queries. BM25 tokenizes
+> on hyphens. This does NOT apply to semantic search — but never start a
+> `vec` sub-query token with `-` (the parser reads it as negation, which
+> is valid only in `lex`, and errors).
 
 **Create vs update decision:**
 

@@ -3,7 +3,7 @@ name: record
 description: "You MUST invoke this (or ask the user) whenever an architecture decision is made, a non-obvious bug is diagnosed, a reusable code pattern emerges, or something surprising is learned about the repo, tooling, or developer workflow."
 argument-hint: "[type] [--no-confirm] e.g. 'decision', 'research --no-confirm'"
 disable-model-invocation: false
-allowed-tools: Read Write Bash(qmd *) Bash(mkdir *)
+allowed-tools: Read Write Bash(qmd *) Bash(mkdir *) mcp__plugin_knowledge-vault_qmd
 ---
 
 # Record Skill
@@ -203,29 +203,33 @@ The slug should be 2-4 hyphenated words derived from the concept.
    type is chosen (step 6).
 
 5. **Search for existing notes.** This is critical — determines whether
-   to create a new note or update an existing one.
+   to create a new note or update an existing one. Use the qmd MCP `query`
+   tool (preferred), combining a keyword and a semantic sub-query in one
+   call, with an `intent` naming what you're recording:
 
-   **BM25 search:**
-   ```bash
-   qmd search "<de-hyphenated concept>" --json -n 10 -c ${user_config.vault_collection}
+   ```
+   query(searches=[{type:"lex", query:"<de-hyphenated concept>"}, {type:"vec", query:"<conceptual description>"}], intent:"<what this note is about>", collections=["${user_config.vault_collection}"], limit=10)
    ```
 
-   **Semantic search:**
+   **CLI fallback** (if the MCP server is unavailable):
    ```bash
+   qmd search "<de-hyphenated concept>" --json -n 10 -c ${user_config.vault_collection}
    qmd vsearch "<conceptual description>" --json -n 5 -c ${user_config.vault_collection}
    ```
 
    > **BM25 query formatting — CRITICAL**
    >
    > **Always convert hyphens and slashes to spaces before running BM25
-   > queries:**
+   > (`lex`) queries:**
    >
    > | What you want to find              | Wrong query             | Correct query           |
    > | ---------------------------------- | ----------------------- | ----------------------- |
    > | Notes about trusted-services-lite  | `trusted-services-lite` | `trusted services lite` |
    > | Notes tagged salesforce/lwc        | `salesforce/lwc`        | `salesforce lwc`        |
    >
-   > This does NOT apply to semantic search.
+   > This does NOT apply to semantic search — but never start a `vec`
+   > sub-query token with `-` (the parser reads it as negation, which is
+   > valid only in `lex`, and errors).
 
    **Create vs update decision:**
    - If an existing note covers the same concept AND is a rewritable type

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# qmd-mcp — transport shim for the knowledge-vault plugin's qmd MCP server.
+#
+# DEFAULT (QMD_MCP_URL unset): behaves exactly like `qmd mcp` — a per-session
+# stdio MCP server. This is the path every user gets; it is unchanged from
+# invoking `qmd` directly, so unsetting the var restores today's behavior.
+#
+# OPT-IN (QMD_MCP_URL set): bridge this session's stdio to ONE shared qmd HTTP
+# daemon, so N concurrent Claude sessions load the embed/rerank models once
+# instead of N times. This is a personal, per-machine opt-in — e.g. add to your
+# shell profile:
+#   export QMD_MCP_URL=http://localhost:8181/mcp
+#
+# The branch lives here (not in .mcp.json) because Claude Code expands env vars
+# in a server's command/args/env/url/headers but NOT its transport `type` — so
+# a single uniformly-stdio plugin entry that conditionally bridges is the only
+# zero-disruption way to offer this.
+#
+set -uo pipefail
+
+URL="${QMD_MCP_URL:-}"
+
+# Default: unchanged per-session stdio server.
+if [[ -z "$URL" ]]; then
+  exec qmd "$@"
+fi
+
+# Opt-in: ensure a single shared daemon is running, then bridge to it.
+#
+# `qmd mcp --http --daemon` self-detaches (spawns a detached, unref'd child that
+# logs to ~/.cache/qmd/mcp.log and is tracked in ~/.cache/qmd/mcp.pid) and is
+# single-instance: on the 2nd+ session it prints "Already running" and exits
+# non-zero. Either outcome is fine — we only need it listening before we bridge,
+# so ignore the exit status. Stop it later with `qmd mcp stop`.
+qmd mcp --http --daemon >/dev/null 2>&1 || true
+
+# Wait until the daemon is live — the launcher returns before the detached child
+# binds. qmd exposes `GET /health` (200 `{status,uptime}` once ready), a cleaner
+# probe than poking the `POST /mcp` endpoint. Derived from the URL: …/mcp → …/health.
+HEALTH="${URL%/mcp}/health"
+for _ in $(seq 1 50); do
+  curl -fsS -o /dev/null "$HEALTH" 2>/dev/null && break
+  sleep 0.1
+done
+
+# Bridge stdio <-> the daemon's Streamable HTTP endpoint. mcp-remote is required
+# because the plugin entry stays stdio and qmd has no stdio->http client mode.
+exec npx -y mcp-remote "$URL"

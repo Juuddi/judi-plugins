@@ -3,7 +3,7 @@ name: session
 description: "Extract durable knowledge from Claude Code sessions into structured vault notes. Use when the user says 'session note', 'capture this session', 'what did we learn', or at the end of a productive work session."
 argument-hint: "[optional focus: e.g. 'the JWT auth decision']"
 disable-model-invocation: false
-allowed-tools: Read Write Bash(qmd *) Bash(mkdir *)
+allowed-tools: Read Write Bash(qmd *) Bash(mkdir *) mcp__plugin_knowledge-vault_qmd
 ---
 
 # Session Skill

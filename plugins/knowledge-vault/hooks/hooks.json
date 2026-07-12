@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "KNOWLEDGE_VAULT_PATH=\"${CLAUDE_PLUGIN_OPTION_VAULT_PATH}\" \"${CLAUDE_PLUGIN_ROOT}/scripts/session-index.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
