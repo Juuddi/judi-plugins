@@ -52,7 +52,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/analyze-session.sh",
-            "timeout": 600
+            "timeout": 30
           }
         ]
       }

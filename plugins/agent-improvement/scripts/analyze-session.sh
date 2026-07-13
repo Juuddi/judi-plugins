@@ -5,16 +5,14 @@ set -euo pipefail
 # headless Claude review of the transcript and write a markdown review note
 # under $DATA_DIR/reviews/<skill>/. State files come from
 # record-skill-invocation.sh; the improve-skill skill aggregates the reviews.
-
-input=$(cat)
-
-pass() { echo '{"continue": true}'; exit 0; }
-
-# Never analyze the analyzer's own headless session (--setting-sources ""
-# should already prevent this hook from loading there; this is the backstop)
-if [ -n "${AGENT_IMPROVEMENT_ANALYZER:-}" ]; then
-  pass
-fi
+#
+# Claude Code kills SessionEnd hooks (whole process tree) ~1.5s after exit
+# begins — plugin hooks.json timeouts are NOT counted toward that budget, so
+# a review that takes minutes can never run inside the hook. The hook
+# therefore only validates its input and re-invokes this script as a
+# detached worker (--worker) that survives the hook process and runs the
+# reviews. Success leaves the review file + a ledger increment; worker
+# errors append to $DATA_DIR/analyzer-errors.log.
 
 DATA_DIR="${CLAUDE_PLUGIN_OPTION_DATA_DIR:-$HOME/.claude/agent-improvement}"
 DATA_DIR="${DATA_DIR/#\~/$HOME}"
@@ -37,31 +35,23 @@ ledger_bump() {
   fi
 }
 
-session_id=$(echo "$input" | jq -r '.session_id // ""')
-transcript_path=$(echo "$input" | jq -r '.transcript_path // ""')
-state_file="$DATA_DIR/state/${session_id}.jsonl"
+run_reviews() {
+  local session_id="$1" transcript_path="$2"
+  local state_file="$DATA_DIR/state/${session_id}.jsonl"
+  local date_stamp short_session
+  date_stamp=$(date +%Y-%m-%d)
+  short_session="${session_id:0:8}"
 
-if [ -z "$session_id" ] || [ ! -s "$state_file" ]; then
-  pass
-fi
-if [ -z "$transcript_path" ] || [ ! -f "$transcript_path" ]; then
-  pass
-fi
-command -v claude >/dev/null 2>&1 || pass
+  jq -r '.skill' "$state_file" | sort -u | while IFS= read -r skill; do
+    [ -z "$skill" ] && continue
 
-date_stamp=$(date +%Y-%m-%d)
-short_session="${session_id:0:8}"
+    runs=$(jq -c --arg s "$skill" 'select(.skill == $s)' "$state_file")
+    safe_skill=$(echo "$skill" | tr ':/' '--')
+    out_dir="$DATA_DIR/reviews/$safe_skill"
+    mkdir -p "$out_dir"
+    out_file="$out_dir/${date_stamp}-${short_session}.md"
 
-jq -r '.skill' "$state_file" | sort -u | while IFS= read -r skill; do
-  [ -z "$skill" ] && continue
-
-  runs=$(jq -c --arg s "$skill" 'select(.skill == $s)' "$state_file")
-  safe_skill=$(echo "$skill" | tr ':/' '--')
-  out_dir="$DATA_DIR/reviews/$safe_skill"
-  mkdir -p "$out_dir"
-  out_file="$out_dir/${date_stamp}-${short_session}.md"
-
-  prompt=$(cat <<EOF
+    prompt=$(cat <<EOF
 You are reviewing a completed Claude Code session to evaluate how well the
 skill "$skill" performed, so its SKILL.md can be improved over time.
 
@@ -132,17 +122,57 @@ file, so respond with the markdown document only.
 EOF
 )
 
-  # Prompt goes via stdin: --allowedTools is variadic, so a trailing positional
-  # prompt gets swallowed as tool rules. --setting-sources "" skips plugin
-  # hooks like --bare, but keeps keychain reads (--bare skips them, which
-  # breaks claude.ai OAuth auth).
-  if printf '%s' "$prompt" | AGENT_IMPROVEMENT_ANALYZER=1 claude -p --setting-sources "" --allowedTools "Read" \
-      > "$out_file" 2>> "$DATA_DIR/analyzer-errors.log"; then
-    ledger_bump "$skill"
-  else
-    rm -f "$out_file"
-  fi
-done
+    # Prompt goes via stdin: --allowedTools is variadic, so a trailing positional
+    # prompt gets swallowed as tool rules. --setting-sources "" skips plugin
+    # hooks like --bare, but keeps keychain reads (--bare skips them, which
+    # breaks claude.ai OAuth auth). --model sonnet: a review replays most of
+    # the session's context with no cache-reuse guarantee, and several reviews
+    # can queue up per exit — keep the per-review cost down.
+    if printf '%s' "$prompt" | AGENT_IMPROVEMENT_ANALYZER=1 claude -p --model sonnet --setting-sources "" --allowedTools "Read" \
+        > "$out_file" 2>> "$DATA_DIR/analyzer-errors.log"; then
+      ledger_bump "$skill"
+    else
+      rm -f "$out_file"
+    fi
+  done
 
-rm -f "$state_file" "$DATA_DIR/state/${session_id}.failures"
+  rm -f "$state_file" "$DATA_DIR/state/${session_id}.failures"
+}
+
+# Worker mode: detached re-invocation from hook mode below.
+if [ "${1:-}" = "--worker" ]; then
+  run_reviews "$2" "$3"
+  exit 0
+fi
+
+# Hook mode: validate, detach the worker, return within the SessionEnd budget.
+input=$(cat)
+
+pass() { echo '{"continue": true}'; exit 0; }
+
+# Never analyze the analyzer's own headless session (--setting-sources ""
+# should already prevent this hook from loading there; this is the backstop)
+if [ -n "${AGENT_IMPROVEMENT_ANALYZER:-}" ]; then
+  pass
+fi
+
+session_id=$(echo "$input" | jq -r '.session_id // ""')
+transcript_path=$(echo "$input" | jq -r '.transcript_path // ""')
+state_file="$DATA_DIR/state/${session_id}.jsonl"
+
+if [ -z "$session_id" ] || [ ! -s "$state_file" ]; then
+  pass
+fi
+if [ -z "$transcript_path" ] || [ ! -f "$transcript_path" ]; then
+  pass
+fi
+command -v claude >/dev/null 2>&1 || pass
+
+# Detach: double-fork (the subshell exits at once, reparenting the worker to
+# launchd) + nohup (terminal-close SIGHUP) + stdio off the hook's pipes so
+# nothing ties the worker to the hook's process tree when Claude Code tears
+# it down at the SessionEnd deadline.
+( nohup bash "$0" --worker "$session_id" "$transcript_path" \
+    </dev/null >>"$DATA_DIR/analyzer-errors.log" 2>&1 & )
+
 pass

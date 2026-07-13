@@ -12,7 +12,8 @@ skill invoked (user or agent)
   → detection hooks append {skill, source, prompt_id, ts}
     to <data_dir>/state/<session_id>.jsonl
   → reviews happen via either path (same output format):
-      • SessionEnd hook runs headless `claude -p` per watched skill (automated)
+      • SessionEnd hook detaches a worker that runs headless `claude -p`
+        per watched skill (automated)
       • /agent-improvement:review-run in-session (user-triggered; nudged by
         the PostToolUseFailure hook when failures pile up after a skill ran)
   → review notes land in <data_dir>/reviews/<skill>/, and ledger.json
@@ -38,7 +39,7 @@ skill invoked (user or agent)
 | `PostToolUse`         | `Skill`           | `record-skill-invocation.sh` | Record agent-initiated Skill tool invocations                 |
 | `PostToolUseFailure`  | —                 | `friction-nudge.sh`          | At 3 failures after a watched skill ran, suggest `review-run` |
 | `SessionStart`        | `startup\|clear`  | `session-start-nudge.sh`     | Nudge `improve-skill` when a skill has 3+ pending reviews     |
-| `SessionEnd`          | —                 | `analyze-session.sh`         | Review each watched skill run via headless Claude             |
+| `SessionEnd`          | —                 | `analyze-session.sh`         | Detach a worker that reviews each watched skill run           |
 
 ## Data files (under `<data_dir>`)
 
@@ -96,9 +97,17 @@ fields are known, and remove the fallbacks.
 
 - The transcript JSONL format is internal to Claude Code and changes between
   versions — that's why the analyzer is an LLM reading the file, not a parser.
-- Each watched skill run costs a headless Claude session at SessionEnd (up to
-  the hook's 600s timeout, sequential per skill). Watch skills selectively;
-  `review-run` reviews done in-session are removed from the analyzer's queue.
+- Claude Code kills SessionEnd hooks (whole process tree) ~1.5s after exit
+  begins, and plugin hooks.json timeouts are not counted toward that budget —
+  so the hook detaches the analyzer worker (double-fork + nohup) and returns
+  immediately. A completed review shows up as the review file plus a ledger
+  increment; worker errors append to `analyzer-errors.log`. There is no
+  success signal back to the hook.
+- Each watched skill run costs a headless Claude session (`--model sonnet` —
+  a review replays most of the session's context with no cache-reuse
+  guarantee, and several reviews can queue up per exit), sequential per
+  skill. Watch skills selectively; `review-run` reviews done in-session are
+  removed from the analyzer's queue.
 - The analyzer runs with `--setting-sources ""` (plugin enablement lives in
   user settings, so no settings means no plugin hooks) plus an
   `AGENT_IMPROVEMENT_ANALYZER` env guard so it can never recursively trigger
