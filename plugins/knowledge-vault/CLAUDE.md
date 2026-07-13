@@ -27,7 +27,7 @@ sessions load the embed/rerank models once instead of N times.
 | Event              | Matcher                    | Script                     | Purpose                                                                        |
 | ------------------ | -------------------------- | -------------------------- | ------------------------------------------------------------------------------ |
 | `SessionStart`     | `startup\|clear\|compact`  | `session-index.sh`         | Injects an index of recent `repos/<pwd-basename>/` notes as session context    |
-| `UserPromptSubmit` | —                          | `prompt-skill-reminder.sh` | Injects skill reminders when prompt mentions decisions, learnings, or sessions |
+| `UserPromptSubmit` | —                          | `prompt-skill-reminder.sh` | Injects skill reminders when prompt mentions decisions, learnings, or sessions — only in explicitly personal territory: the repo must be marked `git config vault.domain personal` and its remote must not be in the arctype-ventures org. Everywhere else (unmarked repos included) it stays silent; that's hive-mind's realm and its reminders fire unconditionally |
 | `PostToolUse`      | `Write\|Edit`              | `vault-note-indexer.sh`    | Runs `qmd update && qmd embed` when a vault `.md` is written or edited         |
 | `PreToolUse`       | `Bash`                     | `qmd-dehyphenate.sh`       | Normalizes `qmd search` queries (BM25 tokenizes on hyphens and slashes)        |
 

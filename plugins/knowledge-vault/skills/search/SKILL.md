@@ -1,6 +1,6 @@
 ---
 name: search
-description: "You MUST use this before planning, scoping, or any work that could benefit from prior decisions, context, or domain knowledge."
+description: "You MUST use this before planning, scoping, or any task that could benefit from prior decisions, context, or domain knowledge. Searches the personal knowledge vault — personal notes, not Arctype/work knowledge (that lives in the hive-mind vault)."
 argument-hint: "<query> [--semantic] [--hybrid]"
 disable-model-invocation: false
 ---

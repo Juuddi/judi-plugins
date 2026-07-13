@@ -3,9 +3,32 @@ set -euo pipefail
 
 # UserPromptSubmit hook: pattern-match keywords and inject skill reminders.
 # Bumps auto-invocation of record/session skills from ~50% to ~80%.
+#
+# Gate: this personal vault coexists with the team hive-mind plugin, which
+# owns Arctype knowledge and fires its own reminders unconditionally. To
+# avoid dueling nudges, this hook only speaks in explicitly personal
+# territory. Two requirements, both must hold:
+#   1. the repo/dir is marked personal: `git config vault.domain personal`
+#      (local overrides --global)
+#   2. the git remote is not in the arctype-ventures GitHub org
+# Everything else — unmarked repos included — is assumed to be hive-mind's
+# realm and gets no reminder.
 
 input=$(cat)
 prompt=$(echo "$input" | jq -r '.prompt // ""')
+cwd=$(echo "$input" | jq -r '.cwd // ""')
+
+domain=$(git -C "${cwd:-.}" config --get vault.domain 2>/dev/null || true)
+if [ "$domain" != "personal" ]; then
+  echo '{"continue": true}'
+  exit 0
+fi
+
+remote=$(git -C "${cwd:-.}" remote get-url origin 2>/dev/null || true)
+if echo "$remote" | grep -qiE 'github\.com[:/]arctype-ventures/'; then
+  echo '{"continue": true}'
+  exit 0
+fi
 
 # Normalize to lowercase for matching
 lower=$(echo "$prompt" | tr '[:upper:]' '[:lower:]')

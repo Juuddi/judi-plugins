@@ -1,6 +1,6 @@
 ---
 name: record
-description: "You MUST invoke this (or ask the user) whenever an architecture decision is made, a non-obvious bug is diagnosed, a reusable code pattern emerges, or something surprising is learned about the repo, tooling, or developer workflow."
+description: "You MUST invoke this (or ask the user) whenever an architecture decision is made, a non-obvious bug is diagnosed, a reusable code pattern emerges, or something surprising is learned — when the knowledge is personal (non-work). Records into the personal vault; Arctype/work knowledge belongs in the hive-mind vault, not here."
 argument-hint: "[type] [--no-confirm] e.g. 'decision', 'research --no-confirm'"
 disable-model-invocation: false
 allowed-tools: Read Write Bash(qmd *) Bash(mkdir *) mcp__plugin_knowledge-vault_qmd
