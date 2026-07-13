@@ -15,6 +15,12 @@
       "description": "Personal knowledge vault: capture, search, and organize notes via qmd",
       "version": "0.3.0",
       "source": "./plugins/knowledge-vault"
+    },
+    {
+      "name": "agent-improvement",
+      "description": "Skill observability: record skill runs, review them at session end, aggregate into skill improvements",
+      "version": "0.2.0",
+      "source": "./plugins/agent-improvement"
     }
   ]
 }
