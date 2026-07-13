@@ -1,0 +1,22 @@
+{
+  "name": "agent-improvement",
+  "version": "0.2.0",
+  "description": "Skill observability: record skill invocations, review runs at session end or in-session, and aggregate reviews into skill improvements",
+  "author": {
+    "name": "Judi"
+  },
+  "userConfig": {
+    "watched_skills": {
+      "title": "Watched skills",
+      "description": "Comma-separated skill names to watch, as they appear at invocation (e.g. 'knowledge-vault:search, dev-utils:brainstorming'). Use * to watch all skills. Empty disables recording.",
+      "type": "string",
+      "sensitive": false
+    },
+    "data_dir": {
+      "title": "Data directory",
+      "description": "Where invocation state and review notes are stored. Default: ~/.claude/agent-improvement",
+      "type": "string",
+      "sensitive": false
+    }
+  }
+}
