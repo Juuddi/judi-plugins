@@ -27,7 +27,7 @@ agent-initiated runs — and record them per session. Reviews then happen two
 ways, producing identical artifacts under `<data_dir>/reviews/<skill>/`:
 
 - **Automated**: when the session ends, a hook launches a headless
-  `claude -p --bare` review of the transcript for each watched skill that ran
+  `claude -p` review of the transcript for each watched skill that ran
   — process adherence, friction, user feedback from any later turn, and
   structured improvement suggestions.
 - **In-session**: `/agent-improvement:review-run <skill>` reviews the run from

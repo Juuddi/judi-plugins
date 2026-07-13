@@ -10,8 +10,8 @@ input=$(cat)
 
 pass() { echo '{"continue": true}'; exit 0; }
 
-# Never analyze the analyzer's own headless session (--bare should already
-# prevent this hook from loading there; this is the backstop)
+# Never analyze the analyzer's own headless session (--setting-sources ""
+# should already prevent this hook from loading there; this is the backstop)
 if [ -n "${AGENT_IMPROVEMENT_ANALYZER:-}" ]; then
   pass
 fi
@@ -132,7 +132,11 @@ file, so respond with the markdown document only.
 EOF
 )
 
-  if AGENT_IMPROVEMENT_ANALYZER=1 claude -p --bare --allowedTools "Read" "$prompt" \
+  # Prompt goes via stdin: --allowedTools is variadic, so a trailing positional
+  # prompt gets swallowed as tool rules. --setting-sources "" skips plugin
+  # hooks like --bare, but keeps keychain reads (--bare skips them, which
+  # breaks claude.ai OAuth auth).
+  if printf '%s' "$prompt" | AGENT_IMPROVEMENT_ANALYZER=1 claude -p --setting-sources "" --allowedTools "Read" \
       > "$out_file" 2>> "$DATA_DIR/analyzer-errors.log"; then
     ledger_bump "$skill"
   else

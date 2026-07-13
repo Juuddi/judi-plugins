@@ -12,7 +12,7 @@ skill invoked (user or agent)
   → detection hooks append {skill, source, prompt_id, ts}
     to <data_dir>/state/<session_id>.jsonl
   → reviews happen via either path (same output format):
-      • SessionEnd hook runs `claude -p --bare` per watched skill (automated)
+      • SessionEnd hook runs headless `claude -p` per watched skill (automated)
       • /agent-improvement:review-run in-session (user-triggered; nudged by
         the PostToolUseFailure hook when failures pile up after a skill ran)
   → review notes land in <data_dir>/reviews/<skill>/, and ledger.json
@@ -99,8 +99,11 @@ fields are known, and remove the fallbacks.
 - Each watched skill run costs a headless Claude session at SessionEnd (up to
   the hook's 600s timeout, sequential per skill). Watch skills selectively;
   `review-run` reviews done in-session are removed from the analyzer's queue.
-- The analyzer runs with `--bare` plus an `AGENT_IMPROVEMENT_ANALYZER` env
-  guard so it can never recursively trigger this plugin's own hooks.
+- The analyzer runs with `--setting-sources ""` (plugin enablement lives in
+  user settings, so no settings means no plugin hooks) plus an
+  `AGENT_IMPROVEMENT_ANALYZER` env guard so it can never recursively trigger
+  this plugin's own hooks. Not `--bare`: that skips keychain reads, which
+  breaks claude.ai OAuth auth.
 - Suggestion rules in the review prompts (no tool-negativity, no
   transient-failure rules, no env-specific generalization, class-level gate)
   are load-bearing: they are the guard against lessons that degrade skills
