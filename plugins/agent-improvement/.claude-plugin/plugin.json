@@ -1,6 +1,6 @@
 {
   "name": "agent-improvement",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Skill observability: record skill invocations, review runs at session end or in-session, and aggregate reviews into skill improvements",
   "author": {
     "name": "Judi"

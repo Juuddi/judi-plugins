@@ -12,8 +12,9 @@ skill invoked (user or agent)
   → detection hooks append {skill, source, prompt_id, ts}
     to <data_dir>/state/<session_id>.jsonl
   → reviews happen via either path (same output format):
-      • SessionEnd hook detaches a worker that runs headless `claude -p`
-        per watched skill (automated)
+      • SessionEnd hook detaches a worker that pre-filters the transcript
+        (filter-transcript.py) and runs a pinned headless `claude -p`
+        review per watched skill (automated)
       • /agent-improvement:review-run in-session (user-triggered; nudged by
         the PostToolUseFailure hook when failures pile up after a skill ran)
   → review notes land in <data_dir>/reviews/<skill>/, and ledger.json
@@ -103,11 +104,22 @@ fields are known, and remove the fallbacks.
   immediately. A completed review shows up as the review file plus a ledger
   increment; worker errors append to `analyzer-errors.log`. There is no
   success signal back to the hook.
-- Each watched skill run costs a headless Claude session (`--model sonnet` —
-  a review replays most of the session's context with no cache-reuse
-  guarantee, and several reviews can queue up per exit), sequential per
-  skill. Watch skills selectively; `review-run` reviews done in-session are
-  removed from the analyzer's queue.
+- Each watched skill run costs a headless Claude session (`--model sonnet`),
+  sequential per skill. The worker reviews a pre-filtered transcript copy
+  (~10x smaller: toolUseResult duplicates/envelope/attachments dropped,
+  healthy tool results and thinking truncated with size markers, errors kept
+  whole), which collapses the reviewer's Read-call count — measured
+  ~$0.30-0.50 API-equivalent per review vs $5-15 unfiltered. Falls back to
+  the raw transcript if python3 is missing or the filter finds no
+  conversation entries. Watch skills selectively; `review-run` reviews done
+  in-session are removed from the analyzer's queue.
+- The reviewer's toolset, model, and system prompt are pinned per run:
+  `--allowedTools Read` plus `--disallowedTools Agent/Task/Bash/ToolSearch`
+  (`--setting-sources ""` removes plugins but NOT built-in tools/skills —
+  subagents spawn without a permission gate, and ToolSearch can unlock
+  account-level MCP connectors), with standing instructions in
+  `scripts/reviewer-prompt.md`. Output must start with `# Skill Review:` to
+  count; anything else is parked as `*.failed.md` without a ledger bump.
 - The analyzer runs with `--setting-sources ""` (plugin enablement lives in
   user settings, so no settings means no plugin hooks) plus an
   `AGENT_IMPROVEMENT_ANALYZER` env guard so it can never recursively trigger
@@ -116,8 +128,8 @@ fields are known, and remove the fallbacks.
 - Suggestion rules in the review prompts (no tool-negativity, no
   transient-failure rules, no env-specific generalization, class-level gate)
   are load-bearing: they are the guard against lessons that degrade skills
-  over time. Keep them in sync across `analyze-session.sh`, `review-run`, and
-  `improve-skill`.
+  over time. Keep them in sync across `scripts/reviewer-prompt.md` (the
+  analyzer's system prompt), `review-run`, and `improve-skill`.
 - Sessions that never end cleanly (crash, machine sleep) never reach the
   analyzer; their state files accumulate until a later session of the same id
   ends, or forever. Stale files under `state/` are harmless but can be
@@ -127,3 +139,5 @@ fields are known, and remove the fallbacks.
 
 - `jq` — used by all hook scripts
 - `claude` CLI on `$PATH` — the SessionEnd analyzer silently skips if missing
+- `python3` — optional; runs the transcript pre-filter. Without it the
+  analyzer reviews the raw transcript (correct but ~10x more expensive)

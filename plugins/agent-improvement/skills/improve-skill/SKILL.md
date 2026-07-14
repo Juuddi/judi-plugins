@@ -94,7 +94,26 @@ problem, how often). Consult the `building-skills` skill for skill-authoring
 patterns (progressive disclosure, frontmatter triggers, step structure)
 before rewriting instructions.
 
-Present the proposal to the user before touching the file.
+Present the proposal as a single message with three parts, in order:
+
+1. **Inventory** — every suggestion from every review, one line each
+   (review date/id, one-sentence summary, type/scope). Include the items
+   you are dropping — the user is approving the synthesis, and they can't
+   judge it without seeing what was left out.
+2. **Dispositions** — which proposed edit each inventory item feeds, or why
+   it was dropped (anti-lesson, instance-scoped, unrepeated one-off).
+3. **Edits** — for each edit: the quoted current text, the proposed
+   replacement, and which inventory items back it.
+
+End your turn on that message so it lands as a durable response the user can
+read and scroll back to. Do NOT bundle the proposal with an AskUserQuestion
+call in the same turn: text emitted ahead of a same-turn tool call is not
+guaranteed to persist — it can stream as ephemeral narration that never
+reaches the transcript, leaving the user at a question dialog with the
+proposal nowhere on screen (verified twice from transcripts, 2026-07-14).
+Once the proposal is on screen as a completed message, collect approval
+either from an ordinary reply ("apply 1 and 3", "all of them") or with an
+AskUserQuestion in the follow-up turn — each option self-contained either way.
 
 ### 5. Apply approved edits and update the ledger
 

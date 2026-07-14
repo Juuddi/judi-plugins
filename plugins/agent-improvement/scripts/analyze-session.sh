@@ -13,9 +13,14 @@ set -euo pipefail
 # detached worker (--worker) that survives the hook process and runs the
 # reviews. Success leaves the review file + a ledger increment; worker
 # errors append to $DATA_DIR/analyzer-errors.log.
+#
+# The worker reviews a pre-filtered copy of the transcript (~10x smaller;
+# see filter-transcript.py) and pins the reviewer's toolset, model, and
+# system prompt (reviewer-prompt.md) so every run is identical and cheap.
 
 DATA_DIR="${CLAUDE_PLUGIN_OPTION_DATA_DIR:-$HOME/.claude/agent-improvement}"
 DATA_DIR="${DATA_DIR/#\~/$HOME}"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # Count a completed review toward the skill's pending pile; the SessionStart
 # nudge reads this and improve-skill resets it when a patch lands.
@@ -38,9 +43,25 @@ ledger_bump() {
 run_reviews() {
   local session_id="$1" transcript_path="$2"
   local state_file="$DATA_DIR/state/${session_id}.jsonl"
-  local date_stamp short_session
+  local date_stamp short_session system_prompt
   date_stamp=$(date +%Y-%m-%d)
   short_session="${session_id:0:8}"
+  system_prompt=$(cat "$SCRIPT_DIR/reviewer-prompt.md")
+
+  # Review a pre-filtered copy of the transcript: ~10x smaller, so the
+  # reviewer reads it in 1-2 chunks instead of dozens (the call count is
+  # what drives cache-read cost). Falls back to the raw transcript if
+  # python3 is missing or the filter produces nothing.
+  local review_src="$transcript_path" filtered=""
+  if command -v python3 >/dev/null 2>&1; then
+    filtered=$(mktemp "$DATA_DIR/.filtered-${short_session}-XXXXXX")
+    if python3 "$SCRIPT_DIR/filter-transcript.py" "$transcript_path" "$filtered" \
+        >> "$DATA_DIR/analyzer-errors.log" 2>&1 && [ -s "$filtered" ]; then
+      review_src="$filtered"
+    else
+      rm -f "$filtered"; filtered=""
+    fi
+  fi
 
   jq -r '.skill' "$state_file" | sort -u | while IFS= read -r skill; do
     [ -z "$skill" ] && continue
@@ -52,90 +73,50 @@ run_reviews() {
     out_file="$out_dir/${date_stamp}-${short_session}.md"
 
     prompt=$(cat <<EOF
-You are reviewing a completed Claude Code session to evaluate how well the
-skill "$skill" performed, so its SKILL.md can be improved over time.
+Review how well the skill "$skill" performed in the session below, per your
+system instructions.
 
-The full session transcript is a JSONL file at: $transcript_path
-Read it with the Read tool. It may be large — read in chunks if needed. The
-entry format is internal to Claude Code, so interpret it best-effort.
+- Skill: $skill
+- Session: $session_id
+- Date: $date_stamp
+- Transcript (JSONL): $review_src
 
 Recorded invocations of this skill during the session (prompt_id correlates
 with entries in the transcript; source is who invoked it):
 $runs
-
-Write a markdown review with exactly these sections:
-
-# Skill Review: $skill
-
-- **Session**: $session_id
-- **Date**: $date_stamp
-
-## What happened
-Brief narrative of the skill run(s): what was asked, what the agent did.
-
-## Process adherence
-Did the agent follow the skill's instructions? Note steps skipped, reordered,
-or misread.
-
-## Friction and failures
-Tool errors, retries, dead ends, permission denials, missing prerequisites.
-
-## User feedback
-Corrections, clarifications, or approval from the user in the turns after each
-invocation — including feedback that arrived many turns later.
-
-## Improvement suggestions
-Concrete changes to the skill's SKILL.md that would have prevented the issues
-above. Quote the relevant instruction text where possible. End the section
-with a fenced block, one entry per suggestion, exactly in this shape:
-
-~~~yaml
-suggestions:
-  - summary: <one sentence>
-    type: <wording | structure | coverage>
-    scope: <class | instance>
-    evidence: <what happened, cited from the transcript>
-    proposed_change: <the concrete edit, quoting current instruction text>
-~~~
-
-type: wording = the agent misread an instruction; structure = it skipped or
-misordered one (an emphasis/ordering problem); coverage = the situation was
-never addressed by the skill at all.
-scope: class = the change helps every future run of this skill; instance = it
-would merely re-run this session correctly.
-
-Rules for suggestions — these prevent lessons that degrade the skill:
-- Never propose negative claims about tools ("X is broken") — they harden
-  into refusals that outlive the problem. Record what TO do instead.
-- Never derive rules from transient failures (network errors, rate limits,
-  one-off API hiccups).
-- Never promote environment- or repo-specific details into universal
-  instructions.
-- Prefer strengthening an existing instruction over adding a new special case.
-- Do not artificially generalize an instance-level lesson; mark it
-  scope: instance and let aggregation across sessions decide.
-
-Be specific and evidence-based: cite what actually happened in the transcript.
-If the run went cleanly, say so briefly with an empty suggestions list rather
-than inventing issues. Your entire output is written verbatim to a review
-file, so respond with the markdown document only.
 EOF
 )
 
-    # Prompt goes via stdin: --allowedTools is variadic, so a trailing positional
-    # prompt gets swallowed as tool rules. --setting-sources "" skips plugin
-    # hooks like --bare, but keeps keychain reads (--bare skips them, which
-    # breaks claude.ai OAuth auth). --model sonnet: a review replays most of
-    # the session's context with no cache-reuse guarantee, and several reviews
-    # can queue up per exit — keep the per-review cost down.
-    if printf '%s' "$prompt" | AGENT_IMPROVEMENT_ANALYZER=1 claude -p --model sonnet --setting-sources "" --allowedTools "Read" \
+    # Task prompt goes via stdin: --allowedTools is variadic, so a trailing
+    # positional prompt gets swallowed as tool rules. --setting-sources ""
+    # skips plugin hooks like --bare, but keeps keychain reads (--bare skips
+    # them, which breaks claude.ai OAuth auth); note it does NOT remove
+    # built-in tools or skills — hence the explicit denials. --disallowedTools
+    # hard-blocks the escape hatches: Agent/Task (subagents spawn without a
+    # permission gate and have their own full toolsets), Bash (exec), and
+    # ToolSearch (unlocks deferred tools, including account-level MCP
+    # connectors). --model sonnet + the pinned system prompt keep every run
+    # identical and cheap; identical system prefixes also cache across the
+    # sequential reviews of one worker run.
+    if printf '%s' "$prompt" | AGENT_IMPROVEMENT_ANALYZER=1 claude -p \
+        --model sonnet --setting-sources "" \
+        --allowedTools "Read" \
+        --disallowedTools "Agent" "Task" "Bash" "ToolSearch" \
+        --append-system-prompt "$system_prompt" \
         > "$out_file" 2>> "$DATA_DIR/analyzer-errors.log"; then
-      ledger_bump "$skill"
+      # Count only real reviews: a reviewer that went sideways (e.g. tried to
+      # wait on background work) writes prose, not the required heading.
+      if head -n 3 "$out_file" | grep -q '^# Skill Review:'; then
+        ledger_bump "$skill"
+      else
+        mv "$out_file" "$out_dir/${date_stamp}-${short_session}.failed.md"
+      fi
     else
       rm -f "$out_file"
     fi
   done
 
+  [ -n "$filtered" ] && rm -f "$filtered"
   rm -f "$state_file" "$DATA_DIR/state/${session_id}.failures"
 }
 

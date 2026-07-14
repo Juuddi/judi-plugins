@@ -27,9 +27,10 @@ agent-initiated runs — and record them per session. Reviews then happen two
 ways, producing identical artifacts under `<data_dir>/reviews/<skill>/`:
 
 - **Automated**: when the session ends, a hook detaches a background worker
-  that runs a headless `claude -p` (Sonnet) review of the transcript for each
-  watched skill that ran — process adherence, friction, user feedback from
-  any later turn, and structured improvement suggestions.
+  that pre-filters the transcript (~10x smaller) and runs a locked-down
+  headless `claude -p` (Sonnet, Read-only) review of it for each watched
+  skill that ran — process adherence, friction, user feedback from any later
+  turn, and structured improvement suggestions.
 - **In-session**: `/agent-improvement:review-run <skill>` reviews the run from
   the live conversation and asks *you* what you expected — the signal no
   transcript has. A `PostToolUseFailure` hook suggests it automatically when
@@ -63,6 +64,8 @@ This plugin does not install dependencies:
 
 - `jq` — required by the hook scripts
 - `claude` CLI on `$PATH` — required for session-end analysis
+- `python3` — optional; enables the transcript pre-filter (reviews still run
+  without it, just at ~10x the token cost)
 
 See [CLAUDE.md](./CLAUDE.md) for the full pipeline, hook table, data-file
 layout, and caveats.
