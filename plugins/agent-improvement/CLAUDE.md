@@ -15,8 +15,10 @@ skill invoked (user or agent)
       • SessionEnd hook detaches a worker that pre-filters the transcript
         (filter-transcript.py) and runs a pinned headless `claude -p`
         review per watched skill (automated)
-      • /agent-improvement:review-run in-session (user-triggered; nudged by
-        the PostToolUseFailure hook when failures pile up after a skill ran)
+      • /agent-improvement:review-run in-session (user-triggered for any
+        skill; self-invocation is bounded to watched skills on a genuine
+        trigger — see the skill's "Invocation bounds". Nudged by the
+        PostToolUseFailure hook when failures pile up after a skill ran)
   → review notes land in <data_dir>/reviews/<skill>/, and ledger.json
     increments reviews_since_patch for the skill
   → SessionStart hook nudges when a skill has 3+ unprocessed reviews

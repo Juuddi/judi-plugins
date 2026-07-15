@@ -1,6 +1,6 @@
 ---
 name: review-run
-description: "Review a skill run from the current session while it's fresh, capturing in-context observations and direct user feedback into a review note. Use when the user says a skill run went wrong, asks to review how a skill performed just now, or after noticeable friction during a watched skill's run."
+description: "Review a skill run from the current session while it's fresh, capturing in-context observations and direct user feedback into a review note. Use when the user says a skill run went wrong, asks to review how a skill performed just now, or when the user accepts your offer to review a watched skill's run after noticeable friction. Never self-invoke for unwatched skills or because the user mentioned the automated session-end reviewer."
 argument-hint: "<skill-name>"
 disable-model-invocation: false
 ---
@@ -14,6 +14,27 @@ the one thing the analyzer can't: ask the user directly what they expected.
 
 Reviews land in the same place and format as the analyzer's, so
 `improve-skill` aggregates both without caring which path produced them.
+
+## Invocation bounds
+
+Watched skills: `${user_config.watched_skills}` (comma-separated; `*` = all).
+
+Who triggered this invocation determines what may be reviewed:
+
+- **User-invoked** (slash command, or the user asked for a review in their
+  own words): review whatever skill they name — an explicit request is not
+  gated by the watch list.
+- **Self-invoked**: only for a skill on the watched list, and only on a
+  genuine trigger — the user described a problem with the run, the user
+  accepted your offer to review it, or a friction nudge fired. Friction you
+  noticed on your own is grounds for an *offer*, never a run.
+
+The user saying the automated/session-end reviewer will handle it is NOT a
+trigger — it is a decision to defer, so do not run. But check the watch
+list before agreeing: if the skill is not on it, the analyzer will never
+see it (only watched skills are recorded at invocation). Say so, and let
+the user choose: review in-session now, add the skill to watched_skills,
+or drop it.
 
 ## Prerequisites
 
