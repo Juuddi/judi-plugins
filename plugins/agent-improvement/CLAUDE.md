@@ -55,10 +55,10 @@ watched skill invoked (user typed /skill, or the agent called the Skill tool)
 | `tool.call`      | `mcp__agent-improvement__review_recorded`    | review-run's hand-off: bump the ledger, drop the pending review           |
 | `command.run`    | `review-now`                                 | Review everything pending now                                             |
 | `session.end`    |                                              | Cancel the idle timer                                                     |
-| `ui.render`      | `AbovePrompt`                                | The band: pending reviews with [Review now]; the improve-skill nudge      |
+| `ui.render`      | `AbovePrompt`                                | The band: a bordered box; pending or running review with [Review now], and the improve-skill nudge |
 
 State lives in `$.state` under the contract in `types/index.d.ts`
-(`pending`, `seen`, `failures`, `nudge`, `isNudgeDismissed`, `isNudgeNoted`),
+(`pending`, `seen`, `failures`, `nudge`, `isNudgeDismissed`, `isNudgeNoted`, `isReviewing`),
 so a hot reload keeps it; module variables (the idle timer, the current turn
 id) start over on reload.
 

@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, PluginOptions, Register } from 'claude-code'
+import type { Color, EngineInterface, PluginOptions, Register } from 'claude-code'
 
 import type { NudgeEntry, PendingRun } from '../types'
 
@@ -24,6 +24,7 @@ const failures = atom({ plugin: 'agent-improvement', key: 'failures' } as const,
 const nudge = atom({ plugin: 'agent-improvement', key: 'nudge' } as const, [] as NudgeEntry[])
 const isNudgeDismissed = atom({ plugin: 'agent-improvement', key: 'isNudgeDismissed' } as const, false)
 const isNudgeNoted = atom({ plugin: 'agent-improvement', key: 'isNudgeNoted' } as const, false)
+const isReviewing = atom({ plugin: 'agent-improvement', key: 'isReviewing' } as const, false)
 
 type Engine = EngineInterface
 type LedgerEntry = {
@@ -112,18 +113,19 @@ const taskBlock = (skill: string, sessionId: string, date: string, runs: Pending
 let options: PluginOptions = {}
 let currentTurnId: string | null = null
 let idle: { cancel: () => void } | null = null
-let isReviewing = false
+let isBusy = false
 
 /**
  * Reviews every pending run (except those of `excludeTurn`, the turn that
  * just ended: its feedback is still to come) with one fork per skill.
  */
 async function runReviews($: Engine, excludeTurn: string | null) {
-  if (isReviewing) return
-  isReviewing = true
+  if (isBusy) return
+  isBusy = true
   try {
     const runs = (await read($, pending)).filter(run => run.turnId !== excludeTurn)
     if (runs.length === 0) return
+    await update($, isReviewing, () => true)
 
     const dir = await dataDir($, options)
     const sessionId = await $.session.id()
@@ -168,7 +170,8 @@ async function runReviews($: Engine, excludeTurn: string | null) {
     }
     $.ui.status(undefined)
   } finally {
-    isReviewing = false
+    isBusy = false
+    await update($, isReviewing, () => false)
   }
 }
 
@@ -370,37 +373,82 @@ export const register: Register = (on, loaded) => {
     return next(e)
   })
 
+  // The band: one rounded box in the theme's colors, a status row and an
+  // action row per concern, sized to the band's own columns.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const runs = await read($, pending)
     const waiting = await read($, nudge)
     const isDismissed = await read($, isNudgeDismissed)
+    const busy = await read($, isReviewing)
+    const showsReview = runs.length > 0 || busy
     const showsNudge = waiting.length > 0 && !isDismissed
-    if (e.props.hasSurvey || (runs.length === 0 && !showsNudge)) return next(e)
+    if (e.props.hasSurvey || (!showsReview && !showsNudge)) return next(e)
 
     const { Box, Button, Text } = $.ui.resolve(e)
     const skills = unique(runs.map(run => run.skill)).join(', ')
+    const count = runs.length === 1 ? '1 run' : `${runs.length} runs`
     const nudged = waiting.map(entry => `${entry.skill} (${entry.reviews})`).join(', ')
+    const accent: Color = busy ? 'claude' : showsReview ? 'suggestion' : 'warning'
 
     return (
-      <Box flexDirection="column">
-        {runs.length > 0 && (
-          <Box>
-            <Text dimColor>
-              {PLUGIN}: review pending for {skills}, after your next turn or 2 min idle{' '}
+      <Box
+        flexDirection="column"
+        width={e.props.bodyColumns}
+        borderStyle="round"
+        borderColor={accent}
+        paddingX={1}
+      >
+        {showsReview && (
+          <Box flexDirection="column">
+            <Text wrap="truncate-end">
+              <Text bold color={accent}>
+                {busy ? '◆ Reviewing' : '◆ Review pending'}
+              </Text>
+              <Text dimColor>
+                {' · '}
+                {skills}
+                {busy ? '' : ` (${count})`}
+              </Text>
             </Text>
-            <Button
-              key="review-now"
-              label={isReviewing ? 'Reviewing' : 'Review now'}
-              onPress={() => void runReviews($, null)}
-            />
+            <Box gap={1}>
+              <Text dimColor wrap="truncate-end">
+                {busy
+                  ? `${PLUGIN} is forking the conversation; the note lands under reviews/`
+                  : `${PLUGIN} reviews it after your next turn or 2 min idle, or now:`}
+              </Text>
+              {!busy && (
+                <Button key="review-now" variant="primary" hotkey="r" onPress={() => void runReviews($, null)}>
+                  Review now
+                </Button>
+              )}
+            </Box>
           </Box>
         )}
         {showsNudge && (
-          <Box>
-            <Text dimColor>
-              {PLUGIN}: reviews waiting for {nudged}, run {IMPROVE_COMMAND}{' '}
+          <Box flexDirection="column" marginTop={showsReview ? 1 : 0}>
+            <Text wrap="truncate-end">
+              <Text bold color="warning">
+                ▲ Reviews waiting
+              </Text>
+              <Text dimColor>
+                {' · '}
+                {nudged}
+              </Text>
             </Text>
-            <Button key="dismiss-nudge" label="Dismiss" onPress={() => update($, isNudgeDismissed, () => true)} />
+            <Box gap={1}>
+              <Text dimColor wrap="truncate-end">
+                Enough reviews to patch the skill: run {IMPROVE_COMMAND}
+              </Text>
+              <Button
+                key="dismiss-nudge"
+                role="dismiss"
+                dimColor
+                hotkey="d"
+                onPress={() => update($, isNudgeDismissed, () => true)}
+              >
+                Dismiss
+              </Button>
+            </Box>
           </Box>
         )}
       </Box>

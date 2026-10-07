@@ -39,6 +39,8 @@ declare module 'claude-code' {
       isNudgeDismissed: boolean
       /** The improve-skill note was already appended for the model this session. */
       isNudgeNoted: boolean
+      /** A review fork is running; the band shows it instead of the pending line. */
+      isReviewing: boolean
     }
   }
 }
