@@ -164,6 +164,8 @@ const usageFooter = (u: ReviewUsage) =>
 // one load, while the atoms above do.
 let options: PluginOptions = {}
 let currentTurnId: string | null = null
+/** The text the current turn began with: a `/skill` typed there is the person's run. */
+let turnPrompt = ''
 let idle: { cancel: () => void } | null = null
 let cold: { cancel: () => void } | null = null
 let isBusy = false
@@ -334,6 +336,14 @@ export const register: Register = (on, loaded) => {
     agentInvoking.has(skill) ||
     [...agentInvoking].some(name => skill.endsWith(`:${name}`) || name.endsWith(`:${skill}`))
 
+  /** The turn's prompt opened with `/skill` (full name, or the part after the colon). */
+  const typedByUser = (skill: string) => {
+    const typed = /^\s*\/(\S+)/.exec(turnPrompt)?.[1]
+    if (typed === undefined) return false
+
+    return typed === skill || skill.endsWith(`:${typed}`)
+  }
+
   on('session.start', async ($, e, next) => {
     await $.tool.register({
       name: 'review_recorded',
@@ -386,8 +396,10 @@ export const register: Register = (on, loaded) => {
     return next(e)
   })
 
-  // Detection. The Skill tool's call brackets the skill.prompt it raises, so
-  // a prompt expanded inside it was the agent's doing; any other is the person's.
+  // Detection. A turn whose prompt opens with `/skill` is the person's run,
+  // whichever way the harness routes it (some expand it through the Skill
+  // tool). Otherwise the Skill tool's call brackets the skill.prompt it
+  // raises, so one expanded inside it was the agent's doing.
   on('tool.call', { tool: 'Skill' }, async ($, e, next) => {
     agentInvoking.add(e.skill)
     try {
@@ -401,7 +413,7 @@ export const register: Register = (on, loaded) => {
     if (watched.length > 0 && isWatched(watched, e.skill)) {
       const run: PendingRun = {
         skill: e.skill,
-        source: agentInvoked(e.skill) ? 'agent' : 'user',
+        source: !typedByUser(e.skill) && agentInvoked(e.skill) ? 'agent' : 'user',
         turnId: currentTurnId,
         ts: new Date(await $.clock.now()).toISOString(),
         attempts: 0,
@@ -417,6 +429,7 @@ export const register: Register = (on, loaded) => {
 
   on('turn.start', async ($, e, next) => {
     currentTurnId = e.turnId
+    turnPrompt = e.text
     // A `/skill` typed at the prompt expands before its turn starts: that run
     // belongs to this turn.
     if ((await read($, pending)).some(run => run.turnId === null)) {

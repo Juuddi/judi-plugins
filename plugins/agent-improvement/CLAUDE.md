@@ -53,9 +53,9 @@ watched skill invoked (user typed /skill, or the agent called the Skill tool)
 | Event            | Matcher                                      | Purpose                                                                   |
 | ---------------- | -------------------------------------------- | ------------------------------------------------------------------------- |
 | `session.start`  |                                              | Register the `review_recorded` tool and `/review-now`; read the ledger nudge |
-| `tool.call`      | `Skill`                                      | Mark the skill.prompt it raises as agent-invoked                          |
+| `tool.call`      | `Skill`                                      | Mark the skill.prompt it raises as agent-invoked, unless the turn's prompt typed `/skill` |
 | `skill.prompt`   |                                              | Record a watched skill's run as pending                                   |
-| `turn.start`     |                                              | Claim runs recorded between turns for the turn that starts                |
+| `turn.start`     |                                              | Keep the turn's prompt text; claim runs recorded between turns for this turn |
 | `turn.step`      |                                              | Record that a main-thread request ended (the cache is warm, on this model) |
 | `turn.complete`  |                                              | Mark the cache warm; review runs from earlier turns; arm the idle and cold timers |
 | `tool.call`      |                                              | Count failures after a watched run; nudge `review-run` at the third       |
