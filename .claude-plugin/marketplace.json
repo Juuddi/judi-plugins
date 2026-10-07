@@ -18,8 +18,8 @@
     },
     {
       "name": "agent-improvement",
-      "description": "Skill observability: record skill runs, review them at session end, aggregate into skill improvements",
-      "version": "0.2.4",
+      "description": "Skill observability: record watched skill runs, review them in-session from the live transcript, aggregate reviews into skill improvements",
+      "version": "1.0.0",
       "source": "./plugins/agent-improvement"
     }
   ]

@@ -10,8 +10,9 @@ disable-model-invocation: false
 Synthesize the review notes that the agent-improvement pipeline has accumulated
 for one skill, and turn recurring problems into concrete SKILL.md edits.
 
-Reviews arrive from two paths — the automated SessionEnd analyzer and the
-in-session `review-run` skill — in the same format. This skill is the second
+Reviews arrive from two paths — the mod's automated reviewer (a fork of the
+live transcript after the run) and the in-session `review-run` skill — in the
+same format. This skill is the second
 pass: it reads across many reviews to find patterns a single-session review
 can't see. Edits are always user-approved before applying.
 
@@ -24,8 +25,9 @@ can't see. Edits are always user-approved before applying.
   `knowledge-vault-search`).
 
 If there are no reviews for the requested skill, stop and tell the user: the
-skill must be listed in the plugin's `watched_skills` config, and reviews only
-appear after a session using that skill ends (or after `review-run`).
+skill must be listed in the plugin's `watched_skills` config, and a review
+appears once the mod has reviewed a run (after the next turn, two idle
+minutes, or [Review now]), or after `review-run`.
 
 ## Argument Parsing
 

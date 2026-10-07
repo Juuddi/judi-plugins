@@ -1,9 +1,12 @@
 # agent-improvement
 
-Skill observability: record when watched skills run, review each run against
-the session transcript (automatically at session end, or in-session while
-it's fresh), and aggregate the reviews into concrete SKILL.md improvements.
-Reviewing is automated; applying edits is always human-gated.
+Skill observability for Claude Code: record when watched skills run, review
+each run against the live conversation while the session is still open, and
+aggregate the reviews into concrete SKILL.md improvements. Reviewing is
+automated; applying edits is always human-gated.
+
+This is a mod (a plugin of function hooks). It runs inside Claude Code 2.1.287
+or later, with no shell scripts and no background process.
 
 ## Installation
 
@@ -13,59 +16,40 @@ Reviewing is automated; applying edits is always human-gated.
 
 Then configure via `/plugins` → **agent-improvement** → **Configure Options**:
 
-- `watched_skills` — comma-separated skill names as they appear at invocation
+- `watched_skills`: comma-separated skill names as they appear at invocation
   (e.g. `knowledge-vault:search, dev-utils:brainstorming`); `*` watches all.
   Tip: `jq '.skillUsage' ~/.claude.json` shows Claude Code's native usage
-  counts — the heavily-used skills are the ones worth watching.
-- `data_dir` — optional; defaults to `~/.claude/agent-improvement`
+  counts; the heavily-used skills are the ones worth watching.
+- `data_dir`: optional; defaults to `~/.claude/agent-improvement`
 
 ## How it works
 
-Hooks detect skill invocations from both directions — `UserPromptExpansion`
-for user-typed `/skill` commands, `PostToolUse` on the `Skill` tool for
-agent-initiated runs — and record them per session. Reviews then happen two
-ways, producing identical artifacts under `<data_dir>/reviews/<skill>/`:
+When a watched skill runs (you typed `/skill`, or the agent called the Skill
+tool), the mod records it and waits for your reaction. After your next turn
+completes, or after two quiet minutes, it asks the session's own model one
+tool-less question over the live transcript: how did that skill run go?
+The transcript is served from the prompt cache, so the review costs little
+more than its own output. A band above the prompt shows what is pending,
+with a **Review now** button; `/review-now` does the same.
 
-- **Automated**: when the session ends, a hook detaches a background worker
-  that pre-filters the transcript (~10x smaller) and runs a locked-down
-  headless `claude -p` (Sonnet, Read-only) review of it for each watched
-  skill that ran — process adherence, friction, user feedback from any later
-  turn, and structured improvement suggestions.
+Reviews land under `<data_dir>/reviews/<skill>/` with a structured
+`suggestions:` block, and a ledger counts reviews per skill. Two more paths
+feed the same files:
+
 - **In-session**: `/agent-improvement:review-run <skill>` reviews the run from
-  the live conversation and asks *you* what you expected — the signal no
-  transcript has. A `PostToolUseFailure` hook suggests it automatically when
-  tool failures pile up after a watched skill ran.
-
-The loop closes through you: when a skill accumulates 3+ reviews since its
-last patch, a `SessionStart` nudge reminds you to run:
-
-```shell
-/agent-improvement:improve-skill <skill-name>
-```
-
-which aggregates the reviews (recurrence-weighted, with guards against
-skill-degrading "lessons"), proposes SKILL.md diffs against the marketplace
-working copy (so git is the rollback), and applies only what you approve.
-
-## First-run verification
-
-Three hook payload details are undocumented upstream, so verify them once:
-watch a skill, invoke it both ways (type `/the-skill`, and ask Claude to use
-it), then check `<data_dir>/state/` for markers. If a detection misfired, its
-raw payload is in `<data_dir>/unmatched-payloads.log` — adjust the jq paths in
-`scripts/record-skill-invocation.sh` to match. Set `AGENT_IMPROVEMENT_DEBUG=1`
-(or `touch <data_dir>/debug`) to log every payload the detection hooks
-receive. The friction nudge (`PostToolUseFailure`) is best-effort until its
-output contract is confirmed.
+  the live conversation and asks *you* what you expected, the signal no
+  transcript has. The mod suggests it when tool failures pile up after a
+  watched skill ran.
+- **Improvement**: when a skill accumulates 3+ reviews since its last patch,
+  the band and a note to the model remind you to run
+  `/agent-improvement:improve-skill <skill>`, which aggregates the reviews
+  (recurrence-weighted, with guards against skill-degrading "lessons"),
+  proposes SKILL.md diffs against the marketplace working copy, and applies
+  only what you approve.
 
 ## Prerequisites
 
-This plugin does not install dependencies:
+- Claude Code 2.1.287 or later (mods)
+- `jq`: used by the `review-run` and `improve-skill` skills' ledger steps
 
-- `jq` — required by the hook scripts
-- `claude` CLI on `$PATH` — required for session-end analysis
-- `python3` — optional; enables the transcript pre-filter (reviews still run
-  without it, just at ~10x the token cost)
-
-See [CLAUDE.md](./CLAUDE.md) for the full pipeline, hook table, data-file
-layout, and caveats.
+See [CLAUDE.md](./CLAUDE.md) for the hook table, data-file layout, and caveats.
