@@ -134,6 +134,42 @@ test('an agent-invoked skill run is reviewed after two quiet minutes', { options
   expect(files.has('/data/reviews/knowledge-vault-search/2026-10-05-abcdef12.md')).toBe(true)
 })
 
+test('a /skill the person typed is theirs even when the harness routes it through the Skill tool', { options: OPTIONS }, async ($, on) => {
+  const { forks, clock } = world(on)
+  on('tool.call', { tool: 'Skill' }, async () => {
+    await $.skill.prompt({ skill: SKILL, text: 'search the vault' })
+
+    return { result: { success: true } }
+  })
+  await $.session.start(START)
+  await $.turn.start({ text: `/${SKILL} agent-improvement plugin`, turnId: 't1' })
+  await $.tool.call({ tool: 'Skill', skill: SKILL })
+  await $.turn.complete(turn('t1'))
+  await $.turn.start({ text: 'thanks', turnId: 't2' })
+  await $.turn.complete(turn('t2'))
+  await clock.settle()
+  expect(forks.length).toBe(1)
+  expect(forks[0]).toContain('by user')
+  expect(forks[0]).not.toContain('by agent')
+
+  // The short form, without the plugin prefix, counts too; a plain prompt does not.
+  await $.turn.start({ text: '/search again', turnId: 't3' })
+  await $.tool.call({ tool: 'Skill', skill: SKILL })
+  await $.turn.complete(turn('t3'))
+  await $.turn.start({ text: 'look it up for me', turnId: 't4' })
+  await $.tool.call({ tool: 'Skill', skill: SKILL })
+  await $.turn.complete(turn('t4'))
+  await $.turn.start({ text: 'ok', turnId: 't5' })
+  await $.turn.complete(turn('t5'))
+  await clock.settle()
+  // t3's run is reviewed when t4 ends, t4's when t5 ends: one fork each.
+  expect(forks.length).toBe(3)
+  expect(forks[1]).toContain('by user')
+  expect(forks[1]).not.toContain('by agent')
+  expect(forks[2]).toContain('by agent')
+  expect(forks[2]).not.toContain('by user')
+})
+
 test('an unwatched skill is never recorded', { options: OPTIONS }, async ($, on) => {
   const { forks, clock } = world(on)
   await $.session.start(START)

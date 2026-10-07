@@ -1,6 +1,6 @@
 {
   "name": "agent-improvement",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Skill observability: record watched skill runs, review them in-session from the live transcript, and aggregate reviews into skill improvements",
   "author": {
     "name": "Judi"
