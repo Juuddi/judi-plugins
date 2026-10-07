@@ -20,6 +20,7 @@ function world(on: On, forkReplies: string[] = [REVIEW]) {
   const notes: string[] = []
   const toasts: string[] = []
   const logs: string[] = []
+  const model = { current: 'claude-test-1' }
   mock.env(on, { HOME: '/home/t' })
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-05T12:00:00Z') })
@@ -49,6 +50,10 @@ function world(on: On, forkReplies: string[] = [REVIEW]) {
     return { value: { isAnswered: true as const, text, usage: USAGE } }
   })
   on('session.id', () => ({ value: 'abcdef12-3456-7890-abcd-ef1234567890' }))
+  on('session.model', () => ({ value: model.current }))
+  on('turn.step', async function* ($, e) {
+    return { turnId: e.turnId, index: e.index, answer: 'ok', toolUses: [], stopReason: 'end_turn' as const, usage: null }
+  })
   on('tool.register', ($, e) => ({ value: { tool: `mcp__agent-improvement__${e.name}` } }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.append', ($, e) => {
@@ -70,7 +75,7 @@ function world(on: On, forkReplies: string[] = [REVIEW]) {
     return { value: undefined }
   })
 
-  return { files, forks, notes, toasts, logs, clock }
+  return { files, forks, notes, toasts, logs, clock, model }
 }
 
 const RUN = { origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } } as const
@@ -95,7 +100,9 @@ test('a typed /skill is reviewed once the next turn completes, not before', { op
   expect(forks[0]).toContain('RUBRIC')
   expect(forks[0]).toContain(`Review how well the skill "${SKILL}"`)
   expect(forks[0]).toContain('by user')
-  expect(files.get('/data/reviews/knowledge-vault-search/2026-10-05-abcdef12.md')).toBe(REVIEW)
+  const written = files.get('/data/reviews/knowledge-vault-search/2026-10-05-abcdef12.md') ?? ''
+  expect(written.startsWith(REVIEW.trim())).toBe(true)
+  expect(written).toContain('reviewer usage: model claude-test-1; one fork for 1 skill; cache_read 1000, input 10, cache_write 0, output 20 tokens')
   const ledger = JSON.parse(files.get('/data/ledger.json') ?? '{}')
   expect(ledger[SKILL].reviews_since_patch).toBe(1)
 
@@ -268,4 +275,85 @@ test('the improve-skill nudge draws from the ledger and Dismiss hides it', { opt
   await ui.press({ key: 'dismiss-nudge' })
   expect(await ui.find({ type: 'Text', text: /Reviews waiting/ })).toBeUndefined()
   await ui.unmount()
+})
+
+test('a cold prompt cache refuses to fork: a changed model, then four quiet minutes', { options: OPTIONS }, async ($, on) => {
+  const { forks, toasts, clock, model } = world(on)
+  await $.session.start(START)
+  await $.skill.prompt({ skill: SKILL, text: 'search' })
+  await $.turn.start({ text: `/${SKILL}`, turnId: 't1' })
+  await $.turn.complete(turn('t1'))
+
+  // The person switched models since the last request: the prefix is not cached.
+  model.current = 'claude-test-2'
+  const refused = await $.command.run({ command: 'review-now', args: '', ...RUN })
+  expect(refused.text).toContain('prompt cache is cold')
+  expect(refused.text).toContain('stays pending')
+  expect(forks.length).toBe(0)
+
+  // Same model again, but the warm window has closed: the band waits, no button.
+  model.current = 'claude-test-1'
+  await clock.advance(4 * 60_000 + 1)
+  expect(forks.length).toBe(0)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /Review waiting · knowledge-vault:search/ })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'review-now' })).toBeUndefined()
+  await ui.unmount()
+  await $.command.run({ command: 'review-now', args: '', ...RUN })
+  expect(forks.length).toBe(0)
+  expect(toasts.some(t => t.includes('prompt cache is cold'))).toBe(true)
+
+  // The next turn's end warms the cache and reviews what waited.
+  await $.turn.start({ text: 'back', turnId: 't2' })
+  await $.turn.complete(turn('t2'))
+  await clock.settle()
+  expect(forks.length).toBe(1)
+})
+
+test('a request inside a long turn keeps the cache warm for Review now', { options: OPTIONS }, async ($, on) => {
+  const { forks, clock } = world(on)
+  on('tool.call', { tool: 'Skill' }, async () => {
+    await $.skill.prompt({ skill: SKILL, text: 'search' })
+
+    return { result: { success: true } }
+  })
+  await $.session.start(START)
+  await $.turn.start({ text: 'find it', turnId: 't1' })
+  await $.tool.call({ tool: 'Skill', skill: SKILL })
+  await clock.advance(10 * 60_000) // a long tool call: no request for ten minutes
+  const stream = $.turn.step({ turnId: 't1', index: 3, model: 'claude-test-1', messageCount: 9 })
+  for await (const chunk of stream) void chunk
+  await stream.result
+  const ran = await $.command.run({ command: 'review-now', args: '', ...RUN })
+  expect(ran.text).toContain(`reviewed ${SKILL}`)
+  expect(forks.length).toBe(1)
+})
+
+test('several pending skills share one fork and the reply is split per heading', { options: OPTIONS }, async ($, on) => {
+  const OTHER = 'dev-utils:brainstorming'
+  const second = `# Skill Review: ${OTHER}\n\n- **Session**: s\n\n## What happened\nAlso clean.\n`
+  const { files, forks, clock } = world(on, [`${REVIEW}\n${second}`])
+  await $.session.start(START)
+  await $.skill.prompt({ skill: SKILL, text: 'search' })
+  await $.skill.prompt({ skill: OTHER, text: 'brainstorm' })
+  await $.turn.start({ text: `/${SKILL}`, turnId: 't1' })
+  await $.turn.complete(turn('t1'))
+  await $.turn.start({ text: 'ok', turnId: 't2' })
+  await $.turn.complete(turn('t2'))
+  await clock.settle()
+
+  expect(forks.length).toBe(1)
+  expect(forks[0]).toContain('each of these 2 skills')
+  expect(forks[0]).toContain(`## ${SKILL}`)
+  expect(forks[0]).toContain(`## ${OTHER}`)
+  const first = files.get('/data/reviews/knowledge-vault-search/2026-10-05-abcdef12.md') ?? ''
+  const other = files.get('/data/reviews/dev-utils-brainstorming/2026-10-05-abcdef12.md') ?? ''
+  expect(first.startsWith(REVIEW.trim())).toBe(true)
+  expect(first).not.toContain(OTHER)
+  expect(other.startsWith(`# Skill Review: ${OTHER}`)).toBe(true)
+  expect(other).toContain('one fork for 2 skills')
+  const ledger = JSON.parse(files.get('/data/ledger.json') ?? '{}')
+  expect(ledger[SKILL].reviews_since_patch).toBe(1)
+  expect(ledger[OTHER].reviews_since_patch).toBe(1)
+  expect(ledger[OTHER].last_review_usage.skills_in_fork).toBe(2)
 })

@@ -20,11 +20,17 @@ watched skill invoked (user typed /skill, or the agent called the Skill tool)
         transcript), or
       • after 2 minutes of idle, or
       • on demand: the band's [Review now] button, or /review-now
+    …but never while the prompt cache is cold: no main-thread request ended
+    in the last 4 minutes, or the model changed since. A cold fork would
+    re-send the whole conversation at full price, so the band shows the run
+    waiting and the next turn's end reviews it instead.
   → $.model.fork asks the session's own model one tool-less question over
-    the live transcript (prompt-cache served) with scripts/reviewer-prompt.md
-  → a reply led by "# Skill Review:" lands in <data_dir>/reviews/<skill>/ and
-    ledger.json increments reviews_since_patch; a reply without the heading
-    is parked as *.failed.md with no ledger bump
+    the live transcript (prompt-cache served) with scripts/reviewer-prompt.md;
+    every pending skill shares that one fork, one document per skill
+  → each "# Skill Review: <skill>" document lands in <data_dir>/reviews/<skill>/
+    with a usage footer (cache_read/input/cache_write/output tokens) and
+    ledger.json increments reviews_since_patch and records last_review_usage;
+    a reply with no heading is parked as *.failed.md with no ledger bump
   → /agent-improvement:review-run (in-session, can ask the user what they
     expected) writes the same artifact and calls the review_recorded tool,
     which bumps the ledger and drops the pending automated review
@@ -50,15 +56,17 @@ watched skill invoked (user typed /skill, or the agent called the Skill tool)
 | `tool.call`      | `Skill`                                      | Mark the skill.prompt it raises as agent-invoked                          |
 | `skill.prompt`   |                                              | Record a watched skill's run as pending                                   |
 | `turn.start`     |                                              | Claim runs recorded between turns for the turn that starts                |
-| `turn.complete`  |                                              | Review runs from earlier turns; arm the idle timer for this turn's        |
+| `turn.step`      |                                              | Record that a main-thread request ended (the cache is warm, on this model) |
+| `turn.complete`  |                                              | Mark the cache warm; review runs from earlier turns; arm the idle and cold timers |
 | `tool.call`      |                                              | Count failures after a watched run; nudge `review-run` at the third       |
 | `tool.call`      | `mcp__agent-improvement__review_recorded`    | review-run's hand-off: bump the ledger, drop the pending review           |
 | `command.run`    | `review-now`                                 | Review everything pending now                                             |
-| `session.end`    |                                              | Cancel the idle timer                                                     |
-| `ui.render`      | `AbovePrompt`                                | The band: a bordered box; pending or running review with [Review now], and the improve-skill nudge |
+| `session.end`    |                                              | Cancel the idle and cold timers                                           |
+| `ui.render`      | `AbovePrompt`                                | The band: a bordered box; pending, waiting (cold) or running review, [Review now] while warm, the improve-skill nudge |
 
 State lives in `$.state` under the contract in `types/index.d.ts`
-(`pending`, `seen`, `failures`, `nudge`, `isNudgeDismissed`, `isNudgeNoted`, `isReviewing`),
+(`pending`, `seen`, `failures`, `nudge`, `isNudgeDismissed`, `isNudgeNoted`,
+`isReviewing`, `cache`, `isCacheCold`),
 so a hot reload keeps it; module variables (the idle timer, the current turn
 id) start over on reload.
 
@@ -92,8 +100,9 @@ Set via `/plugins` → agent-improvement → Configure Options:
 - `data_dir`: review and ledger storage; defaults to `~/.claude/agent-improvement`.
 
 Thresholds are constants at the top of `hooks/register.tsx`: review after
-2 minutes idle, nudge at 3 pending reviews, friction nudge at the 3rd tool
-failure, 2 review attempts before giving up on a run.
+2 minutes idle, cache treated as cold 4 minutes after the last request (under
+the API's 5-minute floor), nudge at 3 pending reviews, friction nudge at the
+3rd tool failure, 2 review attempts before giving up on a run.
 
 ## Development
 
@@ -110,10 +119,14 @@ literal `plugin`/`key` strings; keep that shape when adding hooks.
 
 ## Caveats
 
-- The review runs on the session's current model with the session's system
-  prompt, over the cached transcript prefix: the cost is the review's output
-  plus whatever of the prefix the cache no longer holds (`/model` or a long
-  idle lapses it). Watch skills selectively.
+- The review runs on the session's current model (the fork takes no model
+  option) over the cached transcript prefix: warm, it costs the rubric plus
+  the review's output plus a cache read of the whole context, roughly a tenth
+  of fresh input. Cold, it would re-send the whole context at full price, so
+  the mod refuses to fork once 4 minutes pass without a main-thread request
+  or after `/model`, and waits for the next turn. Each review's footer and
+  the ledger's `last_review_usage` carry the real numbers. Watch skills
+  selectively: the cost scales with the session's context, not the run.
 - A run with no later turn and less than 2 minutes of idle before the session
   ends is never reviewed: `session.end` has a 1.5 s budget shared by every
   plugin, too short for a model call. Press [Review now] or run `/review-now`
