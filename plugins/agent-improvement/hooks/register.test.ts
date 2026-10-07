@@ -203,10 +203,10 @@ test('a ledger with 3+ reviews since the last patch nudges improve-skill at star
   files.set('/data/ledger.json', JSON.stringify({ [SKILL]: { reviews_since_patch: 3 }, other: { reviews_since_patch: 1 } }))
   await $.session.start(START)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  const line = await ui.find({ type: 'Text', text: /reviews waiting/ })
+  const line = await ui.find({ type: 'Text', text: /Reviews waiting/ })
   expect(line?.text).toContain(`${SKILL} (3)`)
   expect(line?.text).not.toContain('other')
-  expect(line?.text).toContain('/agent-improvement:improve-skill')
+  expect(await ui.find({ type: 'Text', text: /agent-improvement:improve-skill/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -234,7 +234,7 @@ test('the band shows the pending review on every surface and Review now runs it'
 
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ type: 'Text', text: /review pending for knowledge-vault:search/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /Review pending · knowledge-vault:search \(1 run\)/ })).toBeDefined()
     expect(await ui.find({ type: 'Button', key: 'review-now' })).toBeDefined()
     await ui.unmount()
   }
@@ -264,8 +264,8 @@ test('the improve-skill nudge draws from the ledger and Dismiss hides it', { opt
   files.set('/data/ledger.json', JSON.stringify({ [SKILL]: { reviews_since_patch: 4 } }))
   await $.session.start(START)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect(await ui.find({ type: 'Text', text: /reviews waiting for knowledge-vault:search \(4\)/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Reviews waiting · knowledge-vault:search \(4\)/ })).toBeDefined()
   await ui.press({ key: 'dismiss-nudge' })
-  expect(await ui.find({ type: 'Text', text: /reviews waiting/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /Reviews waiting/ })).toBeUndefined()
   await ui.unmount()
 })
