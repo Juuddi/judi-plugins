@@ -1,10 +1,11 @@
 {
   "name": "agent-improvement",
-  "version": "0.2.4",
-  "description": "Skill observability: record skill invocations, review runs at session end or in-session, and aggregate reviews into skill improvements",
+  "version": "1.0.0",
+  "description": "Skill observability: record watched skill runs, review them in-session from the live transcript, and aggregate reviews into skill improvements",
   "author": {
     "name": "Judi"
   },
+  "types": "./types/index.d.ts",
   "userConfig": {
     "watched_skills": {
       "title": "Watched skills",

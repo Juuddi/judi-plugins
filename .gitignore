@@ -1,2 +1,5 @@
 docs/
 .claude/settings.local.json
+# Laid beside a mod by the engine when it loads from this folder
+plugins/*/.claude-plugin/types/
+plugins/*/tsconfig.json
