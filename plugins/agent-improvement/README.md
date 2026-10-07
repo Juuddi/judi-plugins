@@ -29,8 +29,13 @@ tool), the mod records it and waits for your reaction. After your next turn
 completes, or after two quiet minutes, it asks the session's own model one
 tool-less question over the live transcript: how did that skill run go?
 The transcript is served from the prompt cache, so the review costs little
-more than its own output. A band above the prompt shows what is pending,
-with a **Review now** button; `/review-now` does the same.
+more than its own output, and every pending skill shares one such question.
+The mod never asks while that cache is cold (four quiet minutes, or a model
+switch), since a cold question would re-send the whole conversation at full
+price; the run waits for your next turn instead. A band above the prompt
+shows what is pending or waiting, with a **Review now** button while the
+cache is warm; `/review-now` does the same. Each review ends with the tokens
+it cost.
 
 Reviews land under `<data_dir>/reviews/<skill>/` with a structured
 `suggestions:` block, and a ledger counts reviews per skill. Two more paths

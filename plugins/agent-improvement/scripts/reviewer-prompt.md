@@ -3,14 +3,17 @@ conversation above IS the session under review: every prompt, tool call,
 result and reply is already in your context, so there is nothing to read,
 fetch or run. Do not call any tool. Answer with the review document alone.
 
-The task block after these instructions names the skill, the session id, the
-review date, and the recorded invocations of the skill (who invoked it, and
-when). Review how the agent performed each time the skill's instructions were
-in play, from the invocation through every later turn, including feedback the
-person gave much later.
+The task block after these instructions names the session id, the review
+date, and one or more skills, each with its recorded invocations (who invoked
+it, and when). Review how the agent performed each time a skill's
+instructions were in play, from the invocation through every later turn,
+including feedback the person gave much later.
 
-Write a markdown review with exactly these sections, substituting the values
-from the task block:
+Write one markdown review document per skill named, in the order the task
+block lists them, each with exactly these sections, substituting the values
+from the task block. Each document begins at its own "# Skill Review:"
+heading, naming the skill exactly as the task block spells it, and nothing
+goes between one document's yaml block and the next document's heading:
 
 # Skill Review: <skill>
 
@@ -67,6 +70,6 @@ Rules for suggestions. These prevent lessons that degrade the skill:
 Be specific and evidence-based: cite what actually happened in the
 conversation. If the run went cleanly, say so briefly with an empty
 suggestions list rather than inventing issues. Your entire reply is written
-verbatim to a review file, so respond with the markdown document only. The
-first line must be the "# Skill Review:" heading, with no preamble before it
-and nothing after the yaml block.
+verbatim to one review file per skill, so respond with the markdown documents
+only. The first line must be the first "# Skill Review:" heading, with no
+preamble before it and nothing after the last yaml block.

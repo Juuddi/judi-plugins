@@ -24,6 +24,28 @@ export type PendingRun = {
 /** A skill whose accumulated reviews are waiting for `improve-skill`. */
 export type NudgeEntry = { skill: string; reviews: number }
 
+/**
+ * When the main thread's prompt cache was last refreshed, and on which model:
+ * a fork is made only while this is recent and the model is unchanged.
+ */
+export type CacheWarmth = {
+  /** Clock ms when the last main-thread request ended; null before the first. */
+  at: number | null
+  /** The model that request named; null when unknown. */
+  model: string | null
+}
+
+/** What one review fork cost, as written to the review's footer and the ledger. */
+export type ReviewUsage = {
+  model: string | null
+  /** How many skills shared the fork. */
+  skills_in_fork: number
+  cache_read_input_tokens: number
+  input_tokens: number
+  cache_creation_input_tokens: number
+  output_tokens: number
+}
+
 declare module 'claude-code' {
   interface PluginState {
     'agent-improvement': {
@@ -41,6 +63,10 @@ declare module 'claude-code' {
       isNudgeNoted: boolean
       /** A review fork is running; the band shows it instead of the pending line. */
       isReviewing: boolean
+      /** When the prompt cache was last refreshed and on which model. */
+      cache: CacheWarmth
+      /** The warm window closed on pending runs; the band shows them waiting for the next turn. */
+      isCacheCold: boolean
     }
   }
 }
